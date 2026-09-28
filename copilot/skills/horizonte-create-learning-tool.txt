@@ -1,0 +1,35 @@
+---
+name: horizonte-create-learning-tool
+description: Use when a teacher asks native Copilot to build a classroom tool, interactive simulation, station planner, fraction lab, rubric editor, progress tracker or purpose-built educational application. Triggers include crie uma ferramenta, aplicativo da aula, simulador and organizador de estacoes.
+---
+
+# Native Code builds the tool; the ontology supplies the context
+
+Do not navigate to a substitute Code interface. Use native Code only if the
+current Copilot environment exposes it. Otherwise report that availability
+limitation; a mock Code tab is not an acceptable replacement.
+
+1. Query Horizonte list_classes, list_skills and relevant execute_skill results.
+2. Separate sourced facts from configurable teacher inputs.
+3. Define the smallest useful tool and build it in the native supported runtime.
+4. Include source provenance, synthetic-data notice, accessible controls and
+   explicit reset/export behavior. No secrets or actual student data.
+5. Exercise the output with ordinary and boundary values before handing it over.
+
+Bold examples:
+- A classroom station conductor: available minutes, station rotation, transition
+  time and a printable offline fallback.
+- A fraction investigation: the teacher changes the whole and students explain
+  why the same numerator can describe different quantities.
+- A rubric conversation board: compare teacher-defined feedback criteria without
+  converting them into automatic grades.
+- A "plan B" workbench: switch room, internet and available-material constraints
+  while preserving the retrieved curricular objective.
+
+Do not confine native Code to a hardcoded set of widgets. The teacher's problem
+drives the artifact. For a first demonstration, prefer self-contained synthetic
+data. A live connection needs approved OAuth and a governed runtime; never embed
+tokens, API keys or a shared backend secret in browser code.
+
+The generated tool must not autonomously grade, change attendance, communicate
+with families, infer personal conditions, or make student-level predictions.

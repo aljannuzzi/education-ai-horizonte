@@ -1,0 +1,71 @@
+{
+  "skills": [
+    {
+      "id": "prepare-brief", "name": "Preparação antes da aula",
+      "description": "Cruza turma, aula prevista, materiais, evidências e pendências reais.",
+      "operation": "brief", "readOnly": true,
+      "routes": [
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "evidence", "intervention"],
+        ["teacher", "classroom", "lesson", "diary-entry", "support-case"]
+      ]
+    },
+    {
+      "id": "design-offline-lesson", "name": "Escape room de água",
+      "description": "Monta estações imprimíveis a partir de atividades curriculares e materiais disponíveis.",
+      "operation": "lesson", "readOnly": true,
+      "routes": [
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "evidence", "intervention"],
+        ["teacher", "space", "lesson", "classroom", "curriculum", "material"]
+      ]
+    },
+    {
+      "id": "reconcile-diary", "name": "Conciliação de diário",
+      "description": "Distingue calendário de aula efetiva e propõe triagem, nunca preenchimento automático.",
+      "operation": "diary", "readOnly": true,
+      "routes": [
+        ["teacher", "classroom", "lesson", "diary-entry", "support-case"],
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "evidence"]
+      ]
+    },
+    {
+      "id": "recompose-fractions", "name": "Recomposição de frações",
+      "description": "Usa resultados avaliados para sugerir representações e nova observação, sem rotular estudantes.",
+      "operation": "learning", "readOnly": true,
+      "routes": [["teacher", "classroom", "lesson", "curriculum", "activity", "evidence", "intervention"]]
+    },
+    {
+      "id": "review-writing", "name": "Feedback de escrita",
+      "description": "Relaciona objetivo, rubrica e trechos sintéticos; docente revisa toda devolutiva.",
+      "operation": "writing", "readOnly": true,
+      "routes": [
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "evidence", "intervention"],
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "writing-sample"]
+      ]
+    },
+    {
+      "id": "explain-measures", "name": "Leitura de indicadores",
+      "description": "Calcula completude, avaliação e acerto com denominadores diferentes e atraso explícito.",
+      "operation": "metrics", "readOnly": true,
+      "routes": [
+        ["teacher", "classroom", "lesson", "curriculum", "activity", "evidence"],
+        ["teacher", "classroom", "lesson", "diary-entry", "support-case"]
+      ]
+    },
+    {
+      "id": "configure-safe-tool", "name": "Ferramenta declarativa",
+      "description": "Seleciona apenas modelos limitados de estações, frações ou rubrica, sem executar código.",
+      "operation": "tool", "readOnly": true,
+      "routes": [["teacher", "classroom", "lesson", "curriculum", "activity", "evidence", "intervention"]]
+    }
+  ],
+  "tools": {
+    "station-planner": { "kind": "station-planner", "durationMinutes": 48, "stationCount": 4, "numerator": 1, "denominator": 2, "title": "Estações de água sem internet" },
+    "fraction-lab": { "kind": "fraction-lab", "durationMinutes": 40, "stationCount": 4, "numerator": 3, "denominator": 4, "title": "Laboratório de frações em papel" },
+    "rubric-studio": { "kind": "rubric-studio", "durationMinutes": 30, "stationCount": 3, "numerator": 1, "denominator": 2, "title": "Rubrica com revisão humana" }
+  },
+  "rubric": [
+    { "criterion": "Clareza", "descriptor": "Apresentar uma ideia compreensível sobre o uso da água.", "question": "Qual ideia você quer que o leitor compreenda?" },
+    { "criterion": "Evidência", "descriptor": "Sustentar a proposta com uma observação descrita no texto.", "question": "Que observação ajuda a sustentar sua proposta?" },
+    { "criterion": "Coesão", "descriptor": "Relacionar problema, proposta e justificativa.", "question": "Como a justificativa se conecta à proposta?" }
+  ]
+}

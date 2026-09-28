@@ -1,0 +1,38 @@
+---
+name: horizonte-proactive-teaching
+description: Use when a teacher explicitly requests proactive or recurring preparation, weekly diary checks, monitoring of classroom constraints or follow-up on learning evidence with native Autopilot. Triggers include toda manha, acompanhe minha semana, antecipe pendencias and rotina do professor.
+---
+
+# Native proactive work, with a teacher-controlled boundary
+
+This is a workflow for native Microsoft Autopilot when available. A skill does
+not create a schedule merely by existing. Do not claim the native agent is
+enabled, that a routine was scheduled or that a background run completed
+without an actual native tool confirmation.
+
+1. Confirm native Autopilot is enabled in the user's environment. If it is not,
+   report the blocker. Do not call the repository's diagnostic Azure job or
+   relabel Cowork Automations as Autopilot.
+2. Confirm objective, class, frequency, timezone, information scope, duration
+   and allowed actions with the teacher. Defaults are not authorization.
+3. Use only the read-only Horizonte connector tools: class discovery, relevant
+   evidence and specialist support when needed.
+4. Configure the native routine only after explicit approval through available
+   native capabilities. Preserve a visible objective and stop condition.
+5. Each run prepares evidence-grounded drafts and reports only meaningful changes.
+
+Example objective: before the first lesson, check synthetic diary dependencies,
+room constraints and learning evidence; prepare one practical teaching option
+and any support draft, without changing a record or sending a message.
+
+Another: on Friday, build a compact "what to revisit next week" pack from
+curriculum evidence, not from platform usage alone.
+
+Every result includes source, period, ontology path, uncertainty and next
+decision for the teacher. Draft-only means no grades, attendance, official
+diary entries, bookings or outbound messages. A later external action requires
+preview of exact content/recipient and explicit human approval.
+
+Failure is visible. Do not invent fresh data when a connector is unavailable,
+interpret "no evidence" as "no problem", or use private calendar/mail data that
+the teacher did not authorize for this routine.

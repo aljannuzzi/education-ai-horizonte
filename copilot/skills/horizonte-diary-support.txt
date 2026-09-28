@@ -1,0 +1,26 @@
+---
+name: horizonte-diary-support
+description: Use when a teacher cannot access, complete or reconcile the class diary, finds a missing lesson or timetable mismatch, needs support triage, or wants feedback on a writing activity. Triggers include diario pendente, aula ausente, suporte ao professor and oficina de reescrita.
+---
+
+# Integrate the specialist instead of pretending to be it
+
+1. Discover list_classes and list_skills. Query the relevant diary, schedule and
+   evidence skills with execute_skill.
+2. Call invoke_education_agent with agentId teacher-support for diary issues, or
+   writing-coach for writing feedback. Pass only the task and synthetic class
+   context, never actual student work, private mail or credentials.
+3. Present specialist suggestions alongside the supporting evidence and unknowns.
+
+For diary support, distinguish missing data, a schedule dependency, a completed
+lesson and an actual system failure. The agent assists and proposes triage; it
+does not fill an official diary or grant permissions.
+
+For writing, ask the specialist to identify textual evidence and suggest a
+revision workshop, not assign or publish a grade. State that the sample and
+rubric are synthetic and that the teacher must review the feedback.
+
+Produce a useful draft: observed symptom, evidence, steps the teacher can check,
+and proposed escalation. A draft is not a ticket submitted to any real system.
+Do not describe the reference agent as an existing customer's production agent.
+Never turn a tool error into a successful diagnosis.

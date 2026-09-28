@@ -1,0 +1,45 @@
+{
+  "name": "education-ai-horizonte",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Native Copilot education skills, OAuth MCP, ontology-grounded reference AI agents and synthetic school systems.",
+  "scripts": {
+    "dev": "tsx watch server/index.ts",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "tsc -p tsconfig.server.json && tsc -p tsconfig.web.json && vite build",
+    "start": "node dist/server/index.js",
+    "test": "tsx --test test/*.test.ts integrations/*.test.ts fabric/*.test.mjs",
+    "autopilot": "node dist/server/job.js",
+    "mcp": "node dist/server/mcp-stdio.js",
+    "package:copilot": "node scripts/package-copilot.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.13.3",
+    "@azure/storage-blob": "^12.34.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "jose": "^6.2.12",
+    "lucide-react": "^1.47.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "ajv": "^8.20.0",
+    "ajv-draft-04": "^1.0.0",
+    "fflate": "^0.8.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

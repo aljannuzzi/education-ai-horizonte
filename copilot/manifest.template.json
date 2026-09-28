@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.28/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.28",
+  "version": "1.0.0",
+  "id": "f6d39548-6474-40bb-ae2b-335aa5b54488",
+  "developer": {
+    "name": "Horizonte Education Demo",
+    "websiteUrl": "{{ORIGIN}}",
+    "privacyUrl": "{{ORIGIN}}/#privacy",
+    "termsOfUseUrl": "{{ORIGIN}}/#terms"
+  },
+  "name": {
+    "short": "Horizonte Education",
+    "full": "Horizonte - Education Skills for Copilot"
+  },
+  "description": {
+    "short": "Skills e agentes educacionais com evidencias sinteticas, no Copilot nativo.",
+    "full": "Ajuda o professor a preparar aulas, resolver pendencias do diario, planejar recomposicao de aprendizagem e revisar escrita. Integra agentes especialistas de referencia e sistemas escolares sinteticos por uma ontologia explicavel. O professor trabalha no Copilot nativo; este plugin fornece skills e um conector MCP autenticado, nao uma interface substituta. Nao acessa alunos reais, nao altera notas ou frequencia e nao envia comunicacoes. Code e Autopilot dependem da disponibilidade e das politicas do ambiente."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#b11f4b",
+  "agentSkills": [
+    { "folder": "skills/horizonte-teacher-orchestrator" },
+    { "folder": "skills/horizonte-lesson-rescue" },
+    { "folder": "skills/horizonte-diary-support" },
+    { "folder": "skills/horizonte-create-learning-tool" },
+    { "folder": "skills/horizonte-proactive-teaching" }
+  ],
+  "agentConnectors": [
+    {
+      "id": "horizonte-education",
+      "displayName": "Horizonte Education Systems",
+      "description": "Use para consultar turmas, habilidades curriculares, aulas, evidencias de aprendizagem, materiais docentes, disponibilidade de espacos e pendencias do diario na escola ficticia Horizonte. Descubra list_classes e list_skills; consulte execute_skill e describe_ontology. Acione invoke_education_agent para suporte docente ou feedback de escrita por agentes especialistas de referencia. Todo dado escolar e sintetico; nenhuma ferramenta altera registros oficiais.",
+      "toolSource": {
+        "remoteMcpServer": {
+          "mcpServerUrl": "{{ORIGIN}}/mcp",
+          "mcpToolDescription": { "file": "toolDescription.json" },
+          "authorization": {
+            "type": "OAuthPluginVault",
+            "referenceId": "{{OAUTH_REFERENCE_ID}}"
+          }
+        }
+      }
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["{{HOST}}"]
+}

@@ -1,0 +1,16 @@
+.git
+node_modules
+dist
+.runtime
+.env
+.env.*
+*.log
+*.zip
+test-results
+playwright-report
+deployment*.json
+infra
+docs
+fabric/preflight.json
+fabric/deployment.json
+fabric/generated

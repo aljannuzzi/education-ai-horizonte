@@ -1,0 +1,270 @@
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import type { AddressInfo } from 'node:net';
+import test from 'node:test';
+import { DefaultAzureCredential } from '@azure/identity';
+import type { ChatRequest } from '../shared/contracts.js';
+import { createApp } from '../server/app.js';
+import { createReasoner, MODEL_NAME, MODEL_SCOPE, ModelError, routingSchema } from '../server/llm.js';
+import { classes, defaultToolSpec } from '../server/semantic.js';
+import { createMemoryStore } from '../server/store.js';
+
+const env = {
+  AZURE_OPENAI_ENDPOINT: 'https://synthetic-example.openai.azure.com/',
+  AZURE_OPENAI_DEPLOYMENT: 'teacher-reasoning',
+  AZURE_OPENAI_API_VERSION: '2025-04-01-preview',
+};
+const request: ChatRequest = {
+  message: 'O laboratorio ficou indisponivel. Como mantenho minha aula?',
+  classId: classes[0]!.id, mode: 'code',
+};
+const route = {
+  intent: 'lesson', parameters: { tool: null }, plan: { steps: ['consultar-ontologia', 'preparar-proposta'] },
+};
+const credential = { async getToken() { return { token: 'synthetic-test-token' }; } };
+function completion(value: unknown = route, finish_reason = 'stop') {
+  return Response.json({
+    choices: [{ finish_reason, message: { role: 'assistant', content: JSON.stringify(value), refusal: null } }],
+  });
+}
+const failed = (error: unknown) => error instanceof ModelError && error.status === 502 && error.code === 'MODEL_FAILED';
+
+test('model is explicitly unavailable without endpoint and invalid or partial configuration never falls back', async () => {
+  const model = createReasoner({});
+  assert.equal(model.configured, false);
+  await assert.rejects(model.route(request), (error: unknown) =>
+    error instanceof ModelError && error.status === 503 && error.code === 'MODEL_NOT_CONFIGURED');
+  for (const config of [
+    { AZURE_OPENAI_ENDPOINT: '' }, { AZURE_OPENAI_DEPLOYMENT: 'orphan' },
+    { AZURE_OPENAI_API_VERSION: env.AZURE_OPENAI_API_VERSION },
+    { ...env, AZURE_OPENAI_ENDPOINT: 'http://synthetic-example.openai.azure.com' },
+    { ...env, AZURE_OPENAI_ENDPOINT: 'https://synthetic-example.openai.azure.com.attacker.example' },
+    { ...env, AZURE_OPENAI_ENDPOINT: 'https://user:pass@synthetic-example.openai.azure.com/' },
+    { ...env, AZURE_OPENAI_ENDPOINT: `${env.AZURE_OPENAI_ENDPOINT}?key=secret` },
+    { ...env, AZURE_OPENAI_ENDPOINT: `${env.AZURE_OPENAI_ENDPOINT}custom/path` },
+    { ...env, AZURE_OPENAI_DEPLOYMENT: '../other' },
+    { ...env, AZURE_OPENAI_API_VERSION: 'bad&key=secret' },
+  ]) {
+    assert.throws(() => createReasoner(config), (error: unknown) =>
+      error instanceof ModelError && error.code === 'MODEL_CONFIG');
+  }
+});
+
+test('live request uses DefaultAzureCredential cognitive scope, deployment, strict JSON schema and completion tokens', async t => {
+  const calls: { url: string; options: RequestInit }[] = [];
+  const tokens: unknown[] = [];
+  t.mock.method(DefaultAzureCredential.prototype, 'getToken', async (scope: unknown, options: unknown) => {
+    tokens.push({ scope, options });
+    return { token: 'synthetic-managed-token', expiresOnTimestamp: Date.now() + 60_000 };
+  });
+  const model = createReasoner({ ...env, AZURE_OPENAI_API_KEY: 'must-not-use-this' }, {
+    fetch: async (url, options) => {
+      calls.push({ url: String(url), options: options! });
+      return completion();
+    },
+  });
+  const result = await model.route(request);
+  assert.equal(result.intent, 'lesson');
+  assert.equal(result.toolSpec, undefined);
+  assert.deepEqual(JSON.parse(result.plan), route.plan);
+  assert.equal(tokens.length, 1);
+  assert.equal((tokens[0] as { scope: string }).scope, MODEL_SCOPE);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]!.url, `${env.AZURE_OPENAI_ENDPOINT}openai/deployments/teacher-reasoning/chat/completions?api-version=2025-04-01-preview`);
+  const options = calls[0]!.options;
+  assert.equal(options.method, 'POST');
+  assert.equal(options.redirect, 'error');
+  assert.ok(options.signal instanceof AbortSignal);
+  const headers = new Headers(options.headers);
+  assert.equal(headers.get('authorization'), 'Bearer synthetic-managed-token');
+  assert.equal(headers.get('api-key'), null);
+  assert.equal(headers.get('cookie'), null);
+  const body = JSON.parse(String(options.body));
+  assert.equal(body.model, MODEL_NAME);
+  assert.equal(body.max_completion_tokens, 4096);
+  assert.equal(body.max_tokens, undefined);
+  assert.equal(body.temperature, undefined);
+  assert.equal(body.response_format.type, 'json_schema');
+  assert.equal(body.response_format.json_schema.strict, true);
+  assert.equal(body.response_format.json_schema.schema.additionalProperties, false);
+  assert.equal(body.response_format.json_schema.schema.properties.parameters.additionalProperties, false);
+  assert.equal(body.response_format.json_schema.schema.properties.plan.additionalProperties, false);
+  assert.deepEqual(body.response_format.json_schema.schema.required.sort(), ['intent', 'parameters', 'plan']);
+  assert.doesNotMatch(String(options.body), /must-not-use-this|synthetic-managed-token|teacherId|Cookie/);
+  assert.deepEqual(JSON.parse(body.messages[1].content), { message: request.message, mode: 'code' });
+});
+
+test('all live intents are selected by validated model output, not mode or keyword inference', async () => {
+  for (const intent of ['brief', 'lesson', 'diary', 'learning', 'writing', 'metrics', 'tool'] as const) {
+    const tool = intent === 'tool' ? defaultToolSpec('fraction-lab') : null;
+    const model = createReasoner(env, {
+      credential, fetch: async () => completion({ ...route, intent, parameters: { tool } }),
+    });
+    const result = await model.route({ ...request, mode: 'autopilot' });
+    assert.equal(result.intent, intent);
+    assert.deepEqual(result.toolSpec, tool ?? undefined);
+  }
+});
+
+test('model validates ownership and request shape before any token or network request', async () => {
+  let calls = 0;
+  const model = createReasoner(env, {
+    credential: { async getToken() { calls++; return { token: 'x' }; } },
+    fetch: async () => { calls++; return completion(); },
+  });
+  for (const input of [
+    { ...request, classId: 'foreign-class' }, { ...request, teacherId: 'another-teacher' },
+    { ...request, message: '' }, { ...request, guided: true },
+  ]) await assert.rejects(model.route(input));
+  assert.equal(calls, 0);
+});
+
+test('model accepts only safe bounded declarative tools and schema-controlled plans', async () => {
+  const tool = defaultToolSpec('fraction-lab');
+  for (const value of [
+    { ...route, extra: 'ignored?' },
+    { ...route, intent: 'approve' },
+    { ...route, parameters: { tool, url: 'https://attacker.example' } },
+    { ...route, parameters: { tool } },
+    { ...route, intent: 'tool' },
+    { ...route, plan: { steps: ['execute-code'] } },
+    { ...route, plan: { steps: [], evidence: 'invented' } },
+    { ...route, plan: 'A turma aprendeu 99%' },
+    ...[
+      { ...tool, kind: 'execute-code' }, { ...tool, script: 'fetch("secret")' },
+      { ...tool, title: 'https://attacker.example' }, { ...tool, title: '<script>' },
+      { ...tool, durationMinutes: 0 }, { ...tool, stationCount: 99 },
+      { ...tool, numerator: 4, denominator: 2 },
+    ].map(invalid => ({ ...route, intent: 'tool', parameters: { tool: invalid } })),
+  ]) {
+    assert.equal(routingSchema.safeParse(value).success, false);
+    const model = createReasoner(env, { credential, fetch: async () => completion(value) });
+    await assert.rejects(model.route(request), failed);
+  }
+});
+
+test('HTTP statuses, refusals, truncated output, malformed JSON and oversized responses fail 502 without fallback', async () => {
+  const responses = [
+    () => Response.json({ error: 'SECRET_UPSTREAM_BODY' }, { status: 401 }),
+    () => Response.json({ error: 'SECRET_UPSTREAM_BODY' }, { status: 429 }),
+    () => Response.json({ error: 'SECRET_UPSTREAM_BODY' }, { status: 503 }),
+    () => completion(route, 'length'),
+    () => completion(route, 'content_filter'),
+    () => Response.json({ choices: [] }),
+    () => Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{}', refusal: 'No' } }] }),
+    () => Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{invalid' } }] }),
+    () => new Response('{invalid', { status: 200 }),
+    () => new Response('x'.repeat(130 * 1024), { status: 200 }),
+    () => { throw new Error('SECRET_NETWORK_ERROR'); },
+  ];
+  for (const response of responses) {
+    let calls = 0;
+    const model = createReasoner(env, { credential, fetch: async () => { calls++; return response(); } });
+    await assert.rejects(model.route(request), error => {
+      assert.ok(failed(error));
+      assert.doesNotMatch(String(error), /SECRET_/);
+      return true;
+    });
+    assert.equal(calls, 1);
+  }
+});
+
+test('token failure is sanitized and never sends an unauthenticated model request', async () => {
+  let sends = 0;
+  for (const getToken of [
+    async () => null,
+    async () => ({ token: '' }),
+    async () => { throw new Error('secret credential stack'); },
+  ]) {
+    const model = createReasoner(env, {
+      credential: { getToken }, fetch: async () => { sends++; return completion(); },
+    });
+    await assert.rejects(model.route(request), failed);
+  }
+  assert.equal(sends, 0);
+});
+
+test('one deadline bounds token acquisition, HTTP and response streams, including providers ignoring abort', async () => {
+  let sends = 0;
+  const never = new Promise<never>(() => undefined);
+  const slowToken = createReasoner(env, {
+    timeoutMs: 30, credential: { getToken: async () => never },
+    fetch: async () => { sends++; return completion(); },
+  });
+  await assert.rejects(slowToken.route(request), failed);
+  assert.equal(sends, 0);
+  let httpSignal: AbortSignal | null | undefined;
+  const slowHttp = createReasoner(env, {
+    timeoutMs: 30, credential, fetch: async (_url, options) => {
+      httpSignal = options?.signal;
+      return never;
+    },
+  });
+  await assert.rejects(slowHttp.route(request), failed);
+  assert.equal(httpSignal?.aborted, true);
+  let streamSignal: AbortSignal | null | undefined;
+  const slowStream = createReasoner(env, {
+    timeoutMs: 30, credential, fetch: async (_url, options) => {
+      streamSignal = options?.signal;
+      return new Response(new ReadableStream({ start() {} }));
+    },
+  });
+  await assert.rejects(slowStream.route(request), failed);
+  assert.equal(streamSignal?.aborted, true);
+});
+
+test('real reasoner pipeline returns explicit HTTP failure, bypasses model only for guided:true and never forwards cookie', async t => {
+  const store = createMemoryStore();
+  let calls = 0;
+  let failModel = true;
+  const model = createReasoner(env, {
+    credential,
+    fetch: async (_url, options) => {
+      calls++;
+      assert.equal(new Headers(options?.headers).get('cookie'), null);
+      return failModel ? Response.json({ error: 'secret Azure detail' }, { status: 500 }) : completion();
+    },
+  });
+  const key = 'test-only-synthetic-browser-key';
+  const server = createApp({ env: { DEMO_ACCESS_KEY: key }, store, model }).listen(0, '127.0.0.1');
+  t.after(async () => {
+    const closed = new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    server.closeAllConnections();
+    await closed;
+  });
+  await once(server, 'listening');
+  const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const anonymous = await fetch(`${origin}/api/session`);
+  let cookie = anonymous.headers.get('set-cookie')!.split(';')[0]!;
+  let csrf = (await anonymous.json()).csrfToken as string;
+  const post = (path: string, body: unknown) => fetch(`${origin}${path}`, {
+    method: 'POST', headers: { origin, cookie, 'x-csrf-token': csrf, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const login = await post('/api/login', { accessKey: key });
+  assert.equal(login.status, 200);
+  cookie = login.headers.get('set-cookie')!.split(';')[0]!;
+  csrf = (await login.json()).csrfToken;
+  const failure = await post('/api/chat', request);
+  assert.equal(failure.status, 502);
+  assert.equal((await failure.json()).error.code, 'MODEL_FAILED');
+  assert.equal((await store.read()).actions.length, 0);
+  assert.equal((await store.read()).audit.length, 0);
+  const guided = await post('/api/chat', { ...request, guided: true });
+  assert.equal(guided.status, 200);
+  const guidedWorkspace = await guided.json();
+  assert.equal(guidedWorkspace.model, 'guided');
+  assert.equal(guidedWorkspace.intent, 'lesson');
+  assert.equal(calls, 1);
+  failModel = false;
+  const live = await post('/api/chat', request);
+  assert.equal(live.status, 200);
+  const liveWorkspace = await live.json();
+  assert.equal(liveWorkspace.model, 'azure-openai');
+  assert.match(liveWorkspace.modelNotice, /gpt-5\.4-mini/);
+  assert.equal(liveWorkspace.intent, 'lesson');
+  assert.deepEqual(liveWorkspace.evidence, guidedWorkspace.evidence);
+  assert.deepEqual(liveWorkspace.widgets, guidedWorkspace.widgets);
+  assert.equal((await store.read()).outbox.length, 0);
+  assert.equal(calls, 2);
+});

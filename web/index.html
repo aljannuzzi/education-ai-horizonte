@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Horizonte | Education Skills for Copilot. Instalação técnica de skills, MCP e ontologia customizada. Experiência docente no Copilot nativo; dados sintéticos." />
+    <title>Horizonte | Education Skills for Copilot</title>
+    <script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+    </script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Horizonte | Education Skills for Copilot. Página técnica de instalação, não um aplicativo docente. Dados sintéticos; instalação não verificada. MCP protegido; nunca colocar chave no URL. <a href="https://copilot.cloud.microsoft/">Abrir Copilot nativo</a>. Privacidade: não envie dados pessoais nem segredos; logs técnicos devem excluí-los. Termos: avaliação técnica, não produção; disponibilidade sujeita ao tenant e aos termos do Copilot.</noscript>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

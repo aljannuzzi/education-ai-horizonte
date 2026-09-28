@@ -1,0 +1,41 @@
+{
+  "entities": [
+    { "id": "teacher", "label": "Professor", "description": "Docente sintética e responsável pelas turmas autorizadas.", "systemId": "school-record" },
+    { "id": "space", "label": "Espaço", "description": "Disponibilidade sintética do espaço reservado; não confirma realização de aula.", "systemId": "spaces" },
+    { "id": "material", "label": "Material docente", "description": "Material imprimível vinculado à habilidade, à turma e à docente proprietária.", "systemId": "library" },
+    { "id": "classroom", "label": "Turma", "description": "Vínculo de responsabilidade e quantidade de estudantes.", "systemId": "school-record" },
+    { "id": "lesson", "label": "Aula", "description": "Distingue planejamento no calendário de aula efetivamente realizada.", "systemId": "diary" },
+    { "id": "curriculum", "label": "Habilidade curricular", "description": "Objetivo pedagógico local, não uma skill de software nem código curricular oficial.", "systemId": "library" },
+    { "id": "activity", "label": "Atividade", "description": "Instrumento e materiais relacionados ao objetivo curricular.", "systemId": "library" },
+    { "id": "evidence", "label": "Evidencia", "description": "Contagens sintéticas com denominadores e data de atualização explícitos.", "systemId": "formative" },
+    { "id": "intervention", "label": "Intervencao", "description": "Sugestão pedagógica revisável, sem rótulos individuais.", "systemId": "formative" },
+    { "id": "diary-entry", "label": "Registro de diário", "description": "Pendência administrativa, sem inferir realização ou aprendizagem.", "systemId": "diary" },
+    { "id": "support-case", "label": "Triagem de suporte", "description": "N1 verifica coleta; N2 investiga integração. Nunca preenche o diário.", "systemId": "support-ai" },
+    { "id": "writing-sample", "label": "Produção escrita", "description": "Trecho sintético e feedback sujeito à revisão humana.", "systemId": "writing-ai" }
+  ],
+  "edges": [
+    { "from": "teacher", "to": "space", "label": "tem reserva", "sourceKey": "id", "targetKey": "teacherId" },
+    { "from": "space", "to": "lesson", "label": "receberia", "sourceKey": "id", "targetKey": "spaceId" },
+    { "from": "lesson", "to": "classroom", "label": "pertence à turma", "sourceKey": "classId", "targetKey": "id" },
+    { "from": "classroom", "to": "curriculum", "label": "desenvolve habilidade", "sourceKey": "id", "targetKey": "classId" },
+    { "from": "curriculum", "to": "material", "label": "tem material docente", "sourceKey": "id", "targetKey": "curriculumId" },
+    { "from": "teacher", "to": "classroom", "label": "acompanha", "sourceKey": "id", "targetKey": "teacherId" },
+    { "from": "classroom", "to": "lesson", "label": "tem aula", "sourceKey": "id", "targetKey": "classId" },
+    { "from": "lesson", "to": "curriculum", "label": "trabalha", "sourceKey": "id", "targetKey": "lessonId" },
+    { "from": "curriculum", "to": "activity", "label": "mobilizada por", "sourceKey": "id", "targetKey": "curriculumId" },
+    { "from": "activity", "to": "evidence", "label": "produz", "sourceKey": "id", "targetKey": "activityId" },
+    { "from": "evidence", "to": "intervention", "label": "orienta", "sourceKey": "id", "targetKey": "evidenceId" },
+    { "from": "lesson", "to": "diary-entry", "label": "tem registro", "sourceKey": "id", "targetKey": "lessonId" },
+    { "from": "diary-entry", "to": "support-case", "label": "pode demandar triagem", "sourceKey": "id", "targetKey": "diaryId" },
+    { "from": "activity", "to": "writing-sample", "label": "inclui produção", "sourceKey": "id", "targetKey": "activityId" }
+  ],
+  "adapters": [
+    { "systemId": "spaces", "source": "Retrato sintético de reservas, disponibilidade e orientação de manutenção", "entities": ["space"], "readOnly": true, "simulated": true },
+    { "systemId": "school-record", "source": "Retrato sintético de matrículas e vínculos docentes", "entities": ["teacher", "classroom"], "readOnly": true, "simulated": true },
+    { "systemId": "diary", "source": "Retrato sintético separado de calendário, aulas efetivas e registros", "entities": ["lesson", "diary-entry"], "readOnly": true, "simulated": true },
+    { "systemId": "support-ai", "source": "Roteiros sintéticos de triagem administrativa N1/N2", "entities": ["support-case"], "readOnly": true, "simulated": true },
+    { "systemId": "formative", "source": "Instrumentos sintéticos de avaliação e propostas de recomposição", "entities": ["evidence", "intervention"], "readOnly": true, "simulated": true },
+    { "systemId": "writing-ai", "source": "Trechos inteiramente sintéticos para feedback humano", "entities": ["writing-sample"], "readOnly": true, "simulated": true },
+    { "systemId": "library", "source": "Acervo sintético de habilidades curriculares locais, atividades e materiais da docente", "entities": ["curriculum", "activity", "material"], "readOnly": true, "simulated": true }
+  ]
+}

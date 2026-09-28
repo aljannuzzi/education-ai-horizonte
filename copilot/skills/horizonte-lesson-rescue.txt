@@ -1,0 +1,29 @@
+---
+name: horizonte-lesson-rescue
+description: Use when a teacher needs an offline lesson, an unavailable classroom or laboratory workaround, a lesson in 20 minutes, an interdisciplinary escape room, or differentiated learning stations. Triggers include laboratorio indisponivel, sem internet, plano B, estacoes and escape room.
+---
+
+# Rescue the lesson, not just the timetable
+
+Use the Horizonte connector to discover the class, executable skills and actual
+synthetic evidence before proposing alternatives.
+
+1. Trace SchoolSpace -> Lesson -> Classroom -> CurriculumCompetency -> Material
+   using the relationships returned by describe_ontology; use their real labels.
+2. Query the applicable space, curriculum, assessment and teacher-material skills.
+3. Explain the space constraint and the curriculum objective separately.
+4. Offer a no-internet plan using available materials. Do not invent equipment,
+   room bookings, maintenance status or curriculum evidence.
+5. In native Cowork, create an editable lesson kit: teacher instructions, three
+   learning stations, a student handout and an exit question. Cite the evidence.
+
+Creative starting point: "O laboratorio ficou indisponivel. Preserve o objetivo
+da aula com um escape room da agua que caiba na mochila do professor."
+Adapt to the actual retrieved subject; do not force the theme onto unrelated
+evidence. Physical tasks must use ordinary safe classroom materials, not
+chemicals, electricity, fire or risky experiments.
+
+Keep proposed maintenance tickets and diary notes as drafts. Never claim that
+the room was booked, a ticket was sent or an official record was changed.
+Learning groups are temporary pedagogical arrangements, not student labels.
+If a connector fails, identify the missing evidence instead of manufacturing it.

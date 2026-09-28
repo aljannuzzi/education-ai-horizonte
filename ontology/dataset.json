@@ -1,0 +1,88 @@
+{
+  "asOf": "2026-09-28T09:00:00-03:00",
+  "teacher": [
+    { "id": "teacher-marina", "name": "Marina Costa", "school": "Horizonte", "subject": "Projetos interdisciplinares" }
+  ],
+  "classroom": [
+    { "id": "class-7a", "teacherId": "teacher-marina", "label": "7º A", "grade": "7º ano", "studentCount": 24 },
+    { "id": "class-7b", "teacherId": "teacher-marina", "label": "7º B", "grade": "7º ano", "studentCount": 28 }
+  ],
+  "space": [
+    { "id": "a-lab", "classId": "class-7a", "teacherId": "teacher-marina", "label": "Laboratório de investigação A", "status": "unavailable", "reason": "Reserva indisponível por manutenção preventiva simulada.", "next": "Solicitar à equipe de manutenção a confirmação de disponibilidade; não acessar o espaço até liberação." },
+    { "id": "b-lab", "classId": "class-7b", "teacherId": "teacher-marina", "label": "Laboratório de investigação B", "status": "unavailable", "reason": "Reserva indisponível por revisão simulada das bancadas.", "next": "Solicitar à equipe de manutenção uma previsão de liberação; manter a proposta em sala comum." }
+  ],
+  "material": [
+    { "id": "a-water-print", "classId": "class-7a", "teacherId": "teacher-marina", "curriculumId": "a-water-skill", "title": "Kit de envelopes da água", "format": "printable", "items": ["cartões impressos", "tiras de papel", "lápis", "envelopes"], "instruction": "Distribuir cartões do ciclo e do consumo nos envelopes; discutir conservação em papel, na sala comum, sem internet." },
+    { "id": "b-water-print", "classId": "class-7b", "teacherId": "teacher-marina", "curriculumId": "b-water-skill", "title": "Kit de mapas da água", "format": "printable", "items": ["mapas impressos", "cartões de situações", "lápis"], "instruction": "Traçar o percurso da água nos mapas e justificar escolhas de conservação, na sala comum, sem internet." },
+    { "id": "a-foreign-print", "classId": "class-7a", "teacherId": "teacher-other", "curriculumId": "a-water-skill", "title": "Material reservado de outra docente sintética", "format": "printable", "items": ["caderno reservado"], "instruction": "Não disponibilizar fora da proprietária." },
+    { "id": "a-unlinked-print", "classId": "class-7a", "teacherId": "teacher-marina", "curriculumId": "unlinked-skill", "title": "Material sem vínculo curricular nesta aula", "format": "printable", "items": ["folha avulsa"], "instruction": "Não recomendar sem vínculo curricular." }
+  ],
+  "lesson": [
+    { "id": "a-water", "classId": "class-7a", "spaceId": "a-lab", "topic": "water", "title": "Água: escape room sem internet", "date": "2026-09-29", "status": "planned", "durationMinutes": 48 },
+    { "id": "a-fraction", "classId": "class-7a", "topic": "fractions", "title": "Frações com tiras de papel", "date": "2026-09-25", "status": "taught", "durationMinutes": 40 },
+    { "id": "a-writing", "classId": "class-7a", "topic": "writing", "title": "Carta sobre o cuidado com a água", "date": "2026-09-24", "status": "taught", "durationMinutes": 30 },
+    { "id": "b-water", "classId": "class-7b", "spaceId": "b-lab", "topic": "water", "title": "Água: investigação por estações", "date": "2026-09-29", "status": "planned", "durationMinutes": 45 },
+    { "id": "b-fraction", "classId": "class-7b", "topic": "fractions", "title": "Frações na reta numérica", "date": "2026-09-25", "status": "taught", "durationMinutes": 40 },
+    { "id": "b-writing", "classId": "class-7b", "topic": "writing", "title": "Proposta de economia de água", "date": "2026-09-24", "status": "taught", "durationMinutes": 30 }
+  ],
+  "curriculum": [
+    { "id": "a-water-skill", "classId": "class-7a", "lessonId": "a-water", "code": "LOCAL-AGUA", "objective": "Relacionar circulação, consumo e conservação da água." },
+    { "id": "a-fraction-skill", "classId": "class-7a", "lessonId": "a-fraction", "code": "LOCAL-FRACOES", "objective": "Representar frações equivalentes e justificar comparações." },
+    { "id": "a-writing-skill", "classId": "class-7a", "lessonId": "a-writing", "code": "LOCAL-ARGUMENTACAO", "objective": "Escrever proposta com justificativa e observação concreta." },
+    { "id": "b-water-skill", "classId": "class-7b", "lessonId": "b-water", "code": "LOCAL-AGUA", "objective": "Relacionar circulação, consumo e conservação da água." },
+    { "id": "b-fraction-skill", "classId": "class-7b", "lessonId": "b-fraction", "code": "LOCAL-FRACOES", "objective": "Representar frações equivalentes e justificar comparações." },
+    { "id": "b-writing-skill", "classId": "class-7b", "lessonId": "b-writing", "code": "LOCAL-ARGUMENTACAO", "objective": "Escrever proposta com justificativa e observação concreta." }
+  ],
+  "activity": [
+    { "id": "a-water-task", "classId": "class-7a", "curriculumId": "a-water-skill", "topic": "water", "title": "Envelopes de pistas da água", "materials": ["cartões impressos", "tiras de papel", "lápis", "envelopes"], "stations": [
+      { "title": "Ciclo", "instruction": "Ordenar cartões de evaporação, condensação e precipitação; justificar a ordem para obter a pista." },
+      { "title": "Consumo", "instruction": "Classificar cenas de uso e desperdício da água; explicar uma alternativa para liberar a pista." },
+      { "title": "Conservação", "instruction": "Relacionar problemas desenhados a cuidados possíveis, sem manusear líquidos ou produtos." },
+      { "title": "Mensagem final", "instruction": "Combinar as pistas em uma proposta de cuidado com a água e apresentá-la ao grupo." }
+    ] },
+    { "id": "b-water-task", "classId": "class-7b", "curriculumId": "b-water-skill", "topic": "water", "title": "Mapa de pistas da água", "materials": ["mapas impressos", "cartões de situações", "lápis"], "stations": [
+      { "title": "Percurso", "instruction": "Traçar no mapa o percurso da água e explicar o caminho para receber a pista." },
+      { "title": "Escolhas", "instruction": "Comparar cartões de hábitos e justificar escolhas de conservação para receber a pista." },
+      { "title": "Síntese", "instruction": "Organizar as pistas em um argumento coletivo sobre conservação da água." }
+    ] },
+    { "id": "a-fraction-task", "classId": "class-7a", "curriculumId": "a-fraction-skill", "topic": "fractions", "title": "Comparação de frações em tiras", "materials": ["tiras de papel", "lápis"], "stations": [] },
+    { "id": "b-fraction-task", "classId": "class-7b", "curriculumId": "b-fraction-skill", "topic": "fractions", "title": "Equivalência na reta", "materials": ["reta impressa", "lápis"], "stations": [] },
+    { "id": "a-writing-task", "classId": "class-7a", "curriculumId": "a-writing-skill", "topic": "writing", "title": "Carta argumentativa", "materials": ["papel", "rubrica impressa"], "stations": [] },
+    { "id": "b-writing-task", "classId": "class-7b", "curriculumId": "b-writing-skill", "topic": "writing", "title": "Proposta argumentativa", "materials": ["papel", "rubrica impressa"], "stations": [] }
+  ],
+  "evidence": [
+    { "id": "a-water-resource", "classId": "class-7a", "activityId": "a-water-task", "type": "resource", "summary": "Materiais de papel disponíveis; aula apenas planejada, sem resultados de aprendizagem.", "sourceUpdatedAt": "2026-09-28T08:00:00-03:00", "expected": 0, "received": 0, "ingested": 0, "assessed": 0, "correct": 0 },
+    { "id": "b-water-resource", "classId": "class-7b", "activityId": "b-water-task", "type": "resource", "summary": "Mapas e cartões disponíveis; sem internet; aula ainda não realizada.", "sourceUpdatedAt": "2026-09-28T08:00:00-03:00", "expected": 0, "received": 0, "ingested": 0, "assessed": 0, "correct": 0 },
+    { "id": "a-fraction-check", "classId": "class-7a", "activityId": "a-fraction-task", "type": "assessment", "summary": "Uma resposta de comparação por estudante; parte da coleta ainda não chegou ao analytics.", "sourceUpdatedAt": "2026-09-25T16:00:00-03:00", "expected": 24, "received": 24, "ingested": 18, "assessed": 15, "correct": 9 },
+    { "id": "b-fraction-check", "classId": "class-7b", "activityId": "b-fraction-task", "type": "assessment", "summary": "Uma resposta de equivalência por estudante; coleta recebida integralmente integrada.", "sourceUpdatedAt": "2026-09-28T08:30:00-03:00", "expected": 28, "received": 20, "ingested": 20, "assessed": 20, "correct": 16 },
+    { "id": "a-writing-coverage", "classId": "class-7a", "activityId": "a-writing-task", "type": "coverage", "summary": "Cobertura de produções, não teste binário de acerto; trechos disponíveis são apenas exemplos sintéticos.", "sourceUpdatedAt": "2026-09-28T08:00:00-03:00", "expected": 24, "received": 22, "ingested": 22, "assessed": 20, "correct": 0 },
+    { "id": "b-writing-coverage", "classId": "class-7b", "activityId": "b-writing-task", "type": "coverage", "summary": "Cobertura de produções, não nota ou percentual de aprendizagem; exemplos não representam toda a turma.", "sourceUpdatedAt": "2026-09-28T08:00:00-03:00", "expected": 28, "received": 28, "ingested": 28, "assessed": 24, "correct": 0 }
+  ],
+  "intervention": [
+    { "id": "a-water-next", "classId": "class-7a", "evidenceId": "a-water-resource", "proposal": "Distribuir envelopes e coletar justificativas orais; preparar cartões impressos, sem internet." },
+    { "id": "b-water-next", "classId": "class-7b", "evidenceId": "b-water-resource", "proposal": "Organizar o percurso pelos mapas e recolher uma síntese argumentada, sem internet." },
+    { "id": "a-fraction-next", "classId": "class-7a", "evidenceId": "a-fraction-check", "proposal": "Retomar equivalência com tiras do mesmo inteiro; comparar representações em pares flexíveis e recolher nova justificativa. Não rotular estudantes." },
+    { "id": "b-fraction-next", "classId": "class-7b", "evidenceId": "b-fraction-check", "proposal": "Comparar equivalências na reta e discutir justificativas alternativas; oferecer apoio por observação, em grupos flexíveis, sem rótulos." },
+    { "id": "a-writing-next", "classId": "class-7a", "evidenceId": "a-writing-coverage", "proposal": "Revisar a conexão entre proposta e evidência; docente confirma o contexto antes da devolutiva." },
+    { "id": "b-writing-next", "classId": "class-7b", "evidenceId": "b-writing-coverage", "proposal": "Revisar coesão e explicitar a observação que fundamenta o argumento, com feedback humano." }
+  ],
+  "diary-entry": [
+    { "id": "a-water-diary", "classId": "class-7a", "lessonId": "a-water", "calendarPending": true, "recorded": false },
+    { "id": "a-fraction-diary", "classId": "class-7a", "lessonId": "a-fraction", "calendarPending": true, "recorded": false },
+    { "id": "a-writing-diary", "classId": "class-7a", "lessonId": "a-writing", "calendarPending": false, "recorded": true },
+    { "id": "b-water-diary", "classId": "class-7b", "lessonId": "b-water", "calendarPending": true, "recorded": false },
+    { "id": "b-fraction-diary", "classId": "class-7b", "lessonId": "b-fraction", "calendarPending": false, "recorded": true },
+    { "id": "b-writing-diary", "classId": "class-7b", "lessonId": "b-writing", "calendarPending": false, "recorded": true }
+  ],
+  "support-case": [
+    { "id": "a-calendar-case", "classId": "class-7a", "diaryId": "a-water-diary", "level": "N1", "reason": "Calendário sinaliza pendência de aula futura.", "next": "Conferir regra do calendário; não tratar planejamento como aula ministrada." },
+    { "id": "a-integration-case", "classId": "class-7a", "diaryId": "a-fraction-diary", "level": "N2", "reason": "Aula efetiva sem registro e coleta analítica parcial são sinais distintos a conferir.", "next": "N1 confere horários e recibos; N2 investiga integração se necessário. Nunca preencher o diário pelo suporte." },
+    { "id": "b-calendar-case", "classId": "class-7b", "diaryId": "b-water-diary", "level": "N1", "reason": "Pendência apenas de calendário para aula planejada.", "next": "Verificar exibição antecipada; N2 somente se N1 confirmar falha. Nunca preencher o diário pelo suporte." }
+  ],
+  "writing-sample": [
+    { "id": "a-text-01", "classId": "class-7a", "activityId": "a-writing-task", "author": "Estudante 01", "excerpt": "Precisamos cuidar da água porque ela é importante. Podemos fechar a torneira.", "criterion": "Evidência", "feedback": "A proposta está identificável. Que observação concreta explica por que fechar a torneira ajuda?" },
+    { "id": "a-text-02", "classId": "class-7a", "activityId": "a-writing-task", "author": "Estudante 02", "excerpt": "Vi a torneira aberta no intervalo. Por isso proponho um aviso perto da pia.", "criterion": "Coesão", "feedback": "Você conectou observação e proposta. Explique como o aviso ajudaria quem usa a pia." },
+    { "id": "b-text-01", "classId": "class-7b", "activityId": "b-writing-task", "author": "Estudante 01", "excerpt": "Ao observar o jardim, percebemos água fora dos canteiros. Sugerimos direcionar a rega às plantas.", "criterion": "Clareza", "feedback": "A situação e a proposta estão claras. Detalhe como o grupo poderia observar o efeito da mudança." },
+    { "id": "b-text-02", "classId": "class-7b", "activityId": "b-writing-task", "author": "Estudante 02", "excerpt": "O aviso ajuda. O caminho da água também. Podemos mudar os hábitos.", "criterion": "Coesão", "feedback": "Relacione as ideias: qual hábito mudaria e como isso se conecta ao caminho da água?" }
+  ]
+}

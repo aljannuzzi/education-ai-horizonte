@@ -1,0 +1,88 @@
+HORIZONTE API CONTRACT - v1
+Types: shared/contracts.ts. User-facing text is Brazilian Portuguese.
+Application: authenticated MCP backend + technical landing, not a teacher UI clone.
+Native Copilot orchestrates; native Code creates artifacts/tools from context;
+native Autopilot owns schedules. Cowork browser access confirmed during setup;
+Code/Autopilot availability unconfirmed. Unavailable native steps are blocked.
+/api/chat and /api/autopilot endpoints below are developer harness ONLY,
+NOT Copilot APIs. Legacy approvals/widgets are simulated technical diagnostics.
+All evidence/data synthetic; no real students or clinical data.
+Specialist agents are generic REFERENCE implementations, not customer production
+services. Legacy adapters are simulated. No native Fabric execution.
+Azure OpenAI gpt-5.4-mini referenceAI is separate from native Copilot models.
+The backend does not execute arbitrary model-generated code.
+
+GET /healthz -> {status:"ok"}
+GET /api/session -> SessionInfo (unauthenticated allowed)
+POST /api/login {accessKey:string} -> SessionInfo; HttpOnly SameSite=Strict cookie.
+POST /api/logout {} -> {ok:true}
+All remaining /api endpoints require cookie authentication.
+All mutation POST/PATCH requests require X-CSRF-Token from session/login.
+POST origin must match PUBLIC_ORIGIN (or local request origin in development).
+
+GET /api/bootstrap -> Bootstrap
+POST /api/chat ChatRequest -> Workspace
+  Intent selected by actual Azure OpenAI in live mode; evidence and metrics come
+  from deterministic semantic traversal, not invented model facts.
+  guided:true explicitly selects deterministic presentation mode; never silent fallback.
+GET /api/actions -> {actions:ActionDraft[]}
+PATCH /api/actions/:id {content:string,version:number} -> ActionDraft
+POST /api/actions/:id/approve {version:number} -> ActionDraft
+POST /api/actions/:id/reject {version:number} -> ActionDraft
+  Approval requires exact current version; replay is idempotent; version conflict 409.
+  Only affects simulated destination/outbox. Never an external send or school record.
+GET /api/autopilot -> AutopilotState
+POST /api/autopilot/rules {name,kind,classId,enabled} -> WatchRule
+PATCH /api/autopilot/rules/:id {enabled:boolean} -> WatchRule
+POST /api/autopilot/run {} -> AutopilotState
+  Draft preparation only, deduplicated per rule/day. Persistent audit.
+  Optional diagnostic Azure job only: deployDemoScheduler=false by default.
+  If explicitly deployed, runs independent of browser with opt-in rules;
+  never Microsoft Autopilot. False does not remove/disable existing resources.
+GET /api/audit -> {events:AuditEvent[]}
+POST /mcp -> MCP Streamable HTTP, Entra OAuth delegated bearer, read-only tools.
+  No unauthenticated discovery of school dataset; no approval tools.
+  Backend tools (discover authoritative schemas with tools/list):
+    list_skills, list_classes, describe_ontology, execute_skill,
+    invoke_education_agent (teacher-support, writing-coach).
+  Discovery returns the authoritative input schemas; do not infer arguments.
+  Semantic gatekeeper validates authorized class, ontology routes and evidence.
+  Reference specialist AI uses real Azure OpenAI with synthetic evidence.
+  Read-only means AI can generate suggestions, but cannot write system records.
+  Independent production AI integrations require approved APIs and contracts;
+  credentials remain outside the repository.
+  Native Microsoft 365 v1.28: agentConnectors.remoteMcpServer.authorization
+  type OAuthPluginVault, referenceId=<approved-vault-reference>.
+  Secure Developer Portal vault registration and tenant policy approval required.
+  Native OAuth vault registration, consent and installation are separate from Azure deployment.
+  Never paste bearer into Copilot prompts; no None auth or token in URL.
+  Generator: npm run package:copilot -- --origin HTTPS_ORIGIN --oauth-reference VAULT_ID
+GET /.well-known/oauth-protected-resource/mcp -> OAuth resource metadata only.
+GET /mcp and DELETE /mcp -> 405 (stateless transport).
+
+Errors: HTTP status + ApiError, explicit failure, no success-shaped fallbacks.
+No endpoint accepts arbitrary URLs, scripts, SQL, file paths, teacherId or raw writes.
+Class ownership enforced by backend. User/teacher fixed to synthetic demo persona.
+
+ENVIRONMENT CONTRACT
+PORT=8080
+DEMO_ACCESS_KEY=<required high-entropy secret, fail closed when absent>
+MCP_ACCESS_KEY=<diagnostic-only bearer when Entra is not configured>
+MCP_ENTRA_TENANT_ID=<tenant-guid>
+MCP_ENTRA_CLIENT_ID=<api-and-oauth-client-guid>
+MCP_ENTRA_ALLOWED_OIDS=<comma-separated-authorized-user-object-guids>
+MCP_ENTRA_SCOPE=access_as_user
+When Entra is enabled the legacy MCP_ACCESS_KEY never bypasses OAuth.
+PUBLIC_ORIGIN=https://<container-app-fqdn>
+AZURE_OPENAI_ENDPOINT=https://<account>.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT=teacher-reasoning
+AZURE_OPENAI_API_VERSION=2025-04-01-preview
+AZURE_STORAGE_ACCOUNT=<storage name>
+AZURE_STORAGE_CONTAINER=demo-state
+AZURE_CLIENT_ID=<user assigned managed identity client id>
+STATE_PATH=.runtime/state.json (local only)
+AUTOPILOT_SCHEDULE=06:30 em dias uteis (America/Sao_Paulo) [legacy diagnostic only]
+Production model must use DefaultAzureCredential, not API keys.
+Azure Blob optimistic concurrency via ETags; local serialized/atomic persistence.
+Optional diagnostic scheduler entrypoint: node dist/server/job.js. Exit nonzero on failure.
+MCP stdio entrypoint: node dist/server/mcp-stdio.js.
