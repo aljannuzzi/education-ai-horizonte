@@ -236,14 +236,14 @@ test('job import is inert; entry failure exits nonzero with sanitized logs and p
     assert.equal(imported.status, 0, imported.stderr);
     await assert.rejects(readFile(path), { code: 'ENOENT' });
     await writeFile(path, `{${secret}`);
-    const failed = spawnSync(process.execPath, ['--import', 'tsx', 'server\\job.ts'], { cwd: root, env, encoding: 'utf8' });
+    const failed = spawnSync(process.execPath, ['--import', 'tsx', join(root, 'server', 'job.ts')], { cwd: root, env, encoding: 'utf8' });
     assert.equal(failed.status, 1);
     assert.ok(failed.stderr.includes('Falha na preparação agendada'));
     assert.ok(!(failed.stdout + failed.stderr).includes(secret));
     assert.ok(!failed.stderr.includes(path));
     assert.equal(await readFile(path, 'utf8'), `{${secret}`);
     await rm(path);
-    const succeeded = spawnSync(process.execPath, ['--import', 'tsx', 'server\\job.ts'], { cwd: root, env, encoding: 'utf8' });
+    const succeeded = spawnSync(process.execPath, ['--import', 'tsx', join(root, 'server', 'job.ts')], { cwd: root, env, encoding: 'utf8' });
     assert.equal(succeeded.status, 0, succeeded.stderr);
     const state = await createStore({ STATE_PATH: path }).read();
     assert.equal(state.runs[0]!.source, 'schedule');
