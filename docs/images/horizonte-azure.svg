@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1584" viewBox="0 0 1760 1584" role="img" aria-labelledby="title desc" lang="pt-BR">
+<title id="title">Como a TI opera em Azure e Fabric — Arquitetura de referência</title>
+<desc id="desc">Arquitetura de referência, não prova de provisionamento. Microsoft 365 e Entra ID são serviços externos ao resource group. OAuth delegado autentica o professor no MCP Horizonte em Azure Container Apps Consumption. O aplicativo contém MCP e adapters; especialistas usam Azure OpenAI. Blob guarda rascunhos e auditoria, não é OneLake nem fonte oficial. A identidade gerenciada atribuída pelo usuário recebe RBAC em OpenAI, Blob e ACR. Um service principal dedicado, distinto da identidade gerenciada e do usuário, acessa o Fabric com permissão mínima no workspace e nos dados. O workspace SaaS contém Data Agent, ontologia nativa Fabric IQ e lakehouse no OneLake. A capacidade F2 ou superior tem provisionamento e cobrança ARM, mas não move o workspace para o Container App. GitHub privado e Bicep configuram recursos; ACR fornece a imagem OCI. Linhas tracejadas indicam deploy e telemetria, não consultas de dados.</desc>
+<defs>
+<marker id="end" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M2 2 L10 6 L2 10" fill="none" stroke="#596571" stroke-width="1.6"/></marker>
+<marker id="start" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="10" markerHeight="10" orient="auto"><path d="M10 2 L2 6 L10 10" fill="none" stroke="#596571" stroke-width="1.6"/></marker>
+</defs>
+<rect width="1760" height="1584" fill="#FFFFFF"/>
+<text x="40" y="24" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600"><tspan x="40" y="46">HORIZONTE  /  02  /  ARQUITETURA DE REFERÊNCIA</tspan></text>
+<text x="40" y="64" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="600"><tspan x="40" y="102">Como a TI opera em Azure e Fabric</tspan></text>
+<text x="40" y="120" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="40" y="144">Fronteiras de execução, identidades e operação • nomes genéricos • dados sintéticos</tspan></text>
+<rect x="40" y="176" width="1680" height="168" rx="16" stroke="#246095" stroke-width="2" fill="none"/>
+<text x="64" y="192" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="64" y="218">Acesso · serviços externos ao resource group</tspan></text>
+<rect x="72" y="232" width="528" height="88" rx="16" stroke="#246095" stroke-width="2" fill="#E6F1FB"/>
+<text x="96" y="248" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="96" y="278">01 · Copilot nativo / M365</tspan></text>
+<rect x="848" y="232" width="832" height="88" rx="16" stroke="#246095" stroke-width="2" fill="#E6F1FB"/>
+<text x="872" y="248" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="872" y="278">Microsoft Entra ID · usuário ≠ identidade de serviço</tspan></text>
+<polyline points="600,272 848,272" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<text x="616" y="232" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="616" y="254">OAuth delegado</tspan></text>
+<rect x="40" y="400" width="1048" height="856" rx="16" stroke="#725294" stroke-width="2" fill="none"/>
+<text x="64" y="416" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="64" y="442">Assinatura Azure · resource group · runtime</tspan></text>
+<rect x="1160" y="400" width="560" height="856" rx="16" stroke="#39774A" stroke-width="2" fill="none"/>
+<text x="1184" y="416" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="1184" y="442">Fabric · capacidade + workspace</tspan></text>
+<rect x="424" y="496" width="616" height="208" rx="16" stroke="#725294" stroke-width="2" fill="#F0E8F7"/>
+<text x="448" y="512" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="542">02 · Azure Container Apps</tspan></text>
+<text x="448" y="560" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="448" y="583">Horizonte: MCP HTTPS + adaptadores de agentes</tspan><tspan x="448" y="615.2">Política: valida argumentos e escopo do professor</tspan><tspan x="448" y="647.4">Duas rotas: consulta Fabric ou IA especializada</tspan></text>
+<text x="752" y="344" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="752" y="366">OAuth: usuário → MCP</tspan></text>
+<text x="448" y="448" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="448" y="470">Plano Consumption · HTTPS</tspan></text>
+<polyline points="560,320 560,384 1008,384 1008,496" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<rect x="72" y="1016" width="304" height="176" rx="16" stroke="#596571" stroke-width="2" fill="#F1F3F5"/>
+<text x="96" y="1032" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="96" y="1062">06 · ACR</tspan></text>
+<text x="96" y="1080" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="96" y="1104">Imagem OCI</tspan><tspan x="96" y="1137.6">Pull via UAMI</tspan></text>
+<rect x="424" y="832" width="288" height="160" rx="16" stroke="#725294" stroke-width="2" fill="#F0E8F7"/>
+<text x="448" y="848" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="878">Azure OpenAI</tspan></text>
+<text x="448" y="896" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="448" y="919">03 · Modelo para</tspan><tspan x="448" y="951.2">os especialistas</tspan></text>
+<rect x="760" y="832" width="280" height="160" rx="16" stroke="#946519" stroke-width="2" fill="#FFF3D8"/>
+<text x="784" y="848" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="784" y="878">04 · Blob</tspan></text>
+<text x="784" y="896" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="784" y="918">Rascunhos / auditoria</tspan><tspan x="784" y="948.8">Não é OneLake</tspan></text>
+<rect x="424" y="1064" width="288" height="128" rx="16" stroke="#596571" stroke-width="2" fill="#F1F3F5"/>
+<text x="448" y="1080" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="1110">Log Analytics</tspan></text>
+<text x="448" y="1128" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="448" y="1151">05 · Telemetria</tspan></text>
+<rect x="760" y="1064" width="280" height="128" rx="16" stroke="#596571" stroke-width="2" fill="#F1F3F5"/>
+<text x="784" y="1080" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="784" y="1110">07 · UAMI</tspan></text>
+<text x="784" y="1128" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="784" y="1151">RBAC: OpenAI,</tspan><tspan x="784" y="1183.2">Blob e ACR</tspan></text>
+<polyline points="552,704 552,832" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<polyline points="896,704 896,832" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<polyline points="736,704 736,1128 712,1128" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="9 7" marker-end="url(#end)"/>
+<text x="440" y="1016" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="440" y="1038">logs / métricas</tspan></text>
+<polyline points="216,1016 216,656 424,656" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="9 7" marker-end="url(#end)"/>
+<rect x="1184" y="472" width="512" height="544" rx="16" stroke="#39774A" stroke-width="2" fill="none"/>
+<text x="1208" y="488" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="1208" y="514">Workspace · SaaS governado</tspan></text>
+<rect x="1216" y="560" width="448" height="112" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="576" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="606">08 · Fabric Data Agent</tspan></text>
+<text x="1240" y="624" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="1240" y="648">Leitura governada</tspan></text>
+<rect x="1216" y="752" width="448" height="112" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="768" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="798">09 · Fabric IQ</tspan></text>
+<text x="1240" y="816" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="1240" y="840">Ontologia nativa do lakehouse</tspan></text>
+<rect x="1216" y="904" width="448" height="96" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="920" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="950">10 · OneLake</tspan></text>
+<text x="1240" y="968" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1240" y="990">Lakehouse educacional</tspan></text>
+<polyline points="1040,600 1216,600" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<polyline points="1440,672 1440,752" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<text x="1464" y="696" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1464" y="718">semântica</tspan></text>
+<polyline points="1440,864 1440,904" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<rect x="1184" y="1064" width="512" height="128" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1208" y="1080" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1208" y="1110">11 · Capacidade Fabric F2+</tspan></text>
+<text x="1208" y="1128" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="1208" y="1151">ARM: provisionamento e cobrança</tspan><tspan x="1208" y="1183.2">Workspace e permissões: SaaS</tspan></text>
+<text x="1208" y="1208" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1208" y="1230">Capacidade não é o workspace.</tspan></text>
+<rect x="72" y="1360" width="304" height="136" rx="16" stroke="#596571" stroke-width="2" fill="#F1F3F5"/>
+<text x="96" y="1376" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="96" y="1406">GitHub privado</tspan></text>
+<text x="96" y="1424" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="96" y="1447">Bicep + build OCI</tspan><tspan x="96" y="1479.2">Configuração / IaC</tspan></text>
+<polyline points="216,1360 216,1192" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="9 7" marker-end="url(#end)"/>
+<text x="88" y="1288" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="88" y="1310">build → ACR</tspan></text>
+<rect x="424" y="1312" width="1272" height="184" rx="16" stroke="#596571" stroke-width="2" fill="#F1F3F5"/>
+<text x="448" y="1328" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="1358">12 · Identidade de aplicação Fabric · service principal dedicado</tspan></text>
+<text x="448" y="1376" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="448" y="1400">MCP → Fabric: credencial de aplicação; não usa a UAMI nem o token delegado do professor.</tspan><tspan x="448" y="1433.6">Permissões mínimas no workspace e nos dados; administração de capacidade não é papel de runtime.</tspan><tspan x="448" y="1467.2">UAMI fica no Azure: acesso RBAC ao modelo, ao Blob e ao registro de imagens.</tspan></text>
+<text x="40" y="1520" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="40" y="1542">Linhas: contínua = execução; tracejada = deploy / telemetria. Custos: processamento • IA • dados / operação • Fabric.</tspan></text>
+<rect x="428" y="752" width="272" height="34.8" fill="#ffffff"/>
+<text x="432" y="752" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="432" y="774">inferência especializada</tspan></text>
+<rect x="780" y="752" width="240" height="34.8" fill="#ffffff"/>
+<text x="784" y="752" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="784" y="774">estado operacional</tspan></text>
+<rect x="84" y="744" width="280" height="68.39999999999999" fill="#ffffff"/>
+<text x="88" y="744" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="88" y="767">deploy OCI</tspan><tspan x="88" y="799.2">para o aplicativo</tspan></text>
+<rect x="68" y="880" width="312" height="65.6" fill="#ffffff"/>
+<text x="72" y="880" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="72" y="902">Serviços auxiliares:</tspan><tspan x="72" y="932.8">sem dados oficiais</tspan></text>
+<rect x="1044" y="520" width="144" height="65.6" fill="#ffffff"/>
+<text x="1048" y="520" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1048" y="542">consulta /</tspan><tspan x="1048" y="572.8">evidências</tspan></text>
+</svg>

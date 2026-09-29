@@ -1,270 +1,486 @@
-Horizonte: AI para quem ensina
-=============================
+Horizonte | AI para quem ensina
+===============================
 
-**O professor trabalha no Copilot. Os sistemas trabalham juntos.**
+**Uma experiência para o professor. Vários sistemas trabalhando juntos.
+Decisões pedagógicas continuam humanas.**
 
-Horizonte é uma demonstração de educação com dados sintéticos. Sua arquitetura
-de referência combina **Copilot nativo, skills, MCP, ontologia no Fabric IQ,
-Fabric Data Agent e agentes educacionais especializados**. O objetivo é reduzir
-a fragmentação entre informações, tarefas e sistemas sem criar mais um portal
-para o professor.
+Horizonte demonstra como o **Copilot nativo** pode conectar dados, materiais e
+agentes educacionais para preparar aulas, resolver dúvidas de suporte e criar
+ferramentas úteis ao professor. A base é uma **ontologia nativa no Fabric IQ**,
+consultada por um **Fabric Data Agent** e integrada por **skills e MCP no Azure**.
 
-Este README define a arquitetura final e o contrato do pattern. Não é um
-relatório de provisionamento. Recursos, permissões e capacidades necessários
-à execução estão descritos como pré-requisitos, não como certificação de
-disponibilidade em qualquer ambiente.
+Este documento explica a arquitetura final de referência, suas responsabilidades
+e seus contratos. O desenho não é um inventário de recursos provisionados.
+Os exemplos usam somente dados sintéticos e sistemas educacionais genéricos.
+
+Por que esse pattern interessa à TI de educação
+-----------------------------------------------
+
+O problema não é a falta de sistemas: é o professor precisar conectar sozinho
+as informações entre eles. Uma aula depende de currículo, turma, evidências,
+materiais, calendário e condições da escola. Nenhum chatbot isolado resolve
+essa fragmentação com segurança.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 38 32
+
+   * - Dor da operação educacional
+     - Decisão de arquitetura
+     - Resultado esperado
+   * - Consultas e tarefas distribuídas por vários portais.
+     - Copilot nativo como ponto de trabalho; MCP integra as capacidades.
+     - Menos troca de contexto, sem criar outro portal docente.
+   * - Cada sistema usa nomes, identificadores e métricas diferentes.
+     - Ontologia Fabric IQ com conceitos, relações e origem dos dados.
+     - Respostas explicáveis no vocabulário da educação.
+   * - Agentes de IA resolvem apenas partes do problema.
+     - Skills coordenam especialistas com contexto autorizado.
+     - Reutilização dos investimentos, sem reescrever todos os agentes.
+   * - Uma necessidade pequena vira demanda na fila de desenvolvimento.
+     - Code nativo cria ferramentas delimitadas e governadas.
+     - O professor adapta sua forma de trabalhar; a TI controla os acessos.
+   * - Pendências só aparecem quando alguém as procura.
+     - Autopilot nativo acompanha objetivos explicitamente autorizados.
+     - Preparação antecipada e rascunhos para revisão, não decisões autônomas.
+
+**O ganho proposto é capacidade de ação com contexto, não apenas geração de
+texto.** Redução de tempo, qualidade e adoção devem ser medidas em um piloto;
+não são resultados presumidos pela existência da arquitetura.
 
 O pattern completo
 ------------------
 
-.. code-block:: text
+.. image:: docs/images/horizonte-pattern.png
+   :alt: Arquitetura de referência Horizonte: professor no Copilot nativo, skills e MCP no Azure, Fabric Data Agent e ontologia Fabric IQ sobre dados governados, agentes especialistas e revisão humana.
+   :width: 100%
+   :target: docs/images/horizonte-pattern.svg
 
-   PROFESSOR
-      |
-      v
-   COPILOT NATIVO
-   Home / Chat / Cowork | Code | Autopilot
-      |                                |
-      | contexto de trabalho           | skills de educacao
-      v                                v
-   Microsoft 365 / Work IQ        CONECTOR MCP NO AZURE
-   documentos e colaboracao      identidade, contratos e escopo
-                                       |
-                         +-------------+-------------+
-                         |                           |
-                         v                           v
-                  FABRIC DATA AGENT           AGENTES ESPECIALISTAS
-                  consulta governada          suporte / escrita / outros
-                         |                           |
-                         v                           |
-                  ONTOLOGIA FABRIC IQ <--- contexto e evidencias
-                  entidades, relacoes,
-                  significado e proveniencia
-                         |
-                         v
-                  DADOS GOVERNADOS
-                  OneLake / Lakehouse
-                  ingestao ou federacao autorizada
-                         |
-                         v
-                  FONTES EDUCACIONAIS
-                  registros | atividades | materiais | espacos
+`Abrir imagem vetorial <docs/images/horizonte-pattern.svg>`_ |
+`Editar diagrama no Excalidraw <docs/images/horizonte-pattern.excalidraw>`_
 
-**Caminho principal:** Copilot nativo -> skills/MCP -> Fabric Data Agent e
-ontologia Fabric IQ -> dados educacionais governados.
+**Leia o desenho como uma separação de responsabilidades:**
 
-**Caminho especializado:** Copilot nativo -> skill/MCP -> agente educacional,
-recebendo somente o contexto autorizado e as evidências necessárias.
-As respostas especializadas voltam ao Copilot para composição e revisão.
+1. **Microsoft 365 é onde o professor trabalha.** Chat conversa, Cowork prepara
+   entregáveis, Code cria ferramentas e Autopilot acompanha objetivos.
+   As skills ensinam o procedimento; não são uma interface substituta.
+2. **Azure conecta e controla.** A API MCP valida identidade, escopo e
+   parâmetros; encaminha consultas ao Fabric e pedidos aos agentes especialistas.
+3. **Fabric dá significado aos dados.** O Data Agent consulta fontes governadas
+   usando a ontologia nativa; a resposta conserva as evidências disponíveis.
+4. **Sistemas de origem continuam donos dos registros.** Diário, atividades,
+   materiais e gestão de espaços não são substituídos pelo Copilot.
+5. **A resposta volta ao professor.** Fatos, sugestões e artefatos são
+   apresentados juntos, com revisão antes de qualquer efeito externo.
 
-O desenho representa responsabilidades e fluxo lógico; não implica que todos
-os componentes sejam um único serviço. O Data Agent não é tratado como um
-executor genérico de agentes externos. A orquestração desses agentes pertence
-às skills e aos contratos de integração.
+A linha principal é **Copilot → skills/MCP → Fabric Data Agent → ontologia
+Fabric IQ → dados governados**. A consulta percorre esse caminho; a atualização
+dos dados percorre outro: **fontes → ingestão ou acesso federado → OneLake**.
 
-Responsabilidade de cada camada
-------------------------------
+Agentes especialistas formam uma ramificação coordenada pelas skills/MCP.
+O Data Agent não é um executor genérico de agentes externos. Work IQ adiciona
+contexto autorizado do Microsoft 365; não é um banco de dados escolar.
 
-**Copilot nativo: a experiência do professor**
-   Chat atende consultas; Cowork executa trabalho delegado; Code cria
-   ferramentas adequadas à tarefa; Autopilot acompanha objetivos de forma
-   persistente e proativa. Não são abas reimplementadas por Horizonte.
-   A adaptação da experiência acontece nas capacidades nativas disponíveis.
+Quem faz o quê — e o que entrega
+--------------------------------
 
-**Skills: o procedimento pedagógico**
-   Definem quando consultar evidências, qual especialista acionar, como
-   compor a resposta e quais decisões exigem revisão humana. Uma skill não
-   substitui autorização nem transforma uma recomendação em ação aprovada.
+.. list-table::
+   :header-rows: 1
+   :widths: 19 24 30 27
 
-**MCP: o contrato entre Copilot e os sistemas**
-   Expõe descoberta e ferramentas com parâmetros validados. Transporta
-   pedidos e resultados; não armazena a semântica como substituto do Fabric.
-   Mantém contratos estáveis mesmo quando os sistemas de origem evoluem.
+   * - Componente
+     - Entrada
+     - Responsabilidade
+     - Saída / output
+   * - **Copilot nativo**
+     - Objetivo do professor e contexto autorizado.
+     - Conduzir a interação, delegar trabalho e compor resultados.
+     - Explicação, plano de aula, documento, ferramenta ou rotina autorizada.
+   * - **Skills educacionais**
+     - Tipo de tarefa, limites e ferramentas disponíveis.
+     - Definir procedimento, consultar evidências e escolher especialistas.
+     - Sequência de trabalho e critérios de revisão.
+   * - **Servidor MCP no Azure**
+     - Identidade autenticada e chamada de ferramenta com parâmetros.
+     - Validar acesso, aplicar contratos e encaminhar a execução.
+     - Resultado estruturado ou erro explícito; nunca permissão implícita.
+   * - **Fabric Data Agent**
+     - Pergunta e acesso autorizado às fontes.
+     - Consultar os dados por meio da semântica e das fontes configuradas.
+     - Resposta fundamentada e evidências disponíveis para conferência.
+   * - **Ontologia Fabric IQ**
+     - Entidades, chaves, relações e bindings das fontes.
+     - Expressar significado e ligações entre conceitos educacionais.
+     - Modelo semântico navegável: quem, o quê, como se relaciona e de onde vem.
+   * - **OneLake / Lakehouse**
+     - Dados ingeridos ou acessados por mecanismos suportados.
+     - Organizar tabelas, histórico, qualidade e atualização.
+     - Dados governados com origem, período e esquema conhecido.
+   * - **Agentes especialistas**
+     - Pedido delimitado e contexto mínimo autorizado.
+     - Apoiar uma função: suporte docente, escrita ou outra especialidade.
+     - Sugestão, diagnóstico técnico ou rascunho com limites explícitos.
+   * - **Work IQ / Microsoft 365**
+     - Documentos e colaboração acessíveis ao usuário.
+     - Acrescentar o contexto de trabalho autorizado.
+     - Referências e materiais pertinentes à tarefa.
+   * - **Professor + serviço executor**
+     - Proposta, destino, conteúdo e versão exatos.
+     - Aprovar; o executor valida autorização antes de eventual escrita.
+     - Ação confirmada e auditável — ou apenas um rascunho, se não aprovada.
 
-**Fabric Data Agent: acesso orientado à pergunta**
-   Interpreta perguntas sobre dados governados e usa as fontes e a semântica
-   configuradas no Fabric. A integração deve preservar permissões e
-   proveniência. Respostas sem evidência suficiente devem explicitar a
-   limitação, não completar números ou relações por inferência.
+**Quatro outputs que não devem ser confundidos:** uma evidência é um fato
+recuperado; uma sugestão é interpretação; um artefato é uma entrega utilizável;
+uma execução é uma mudança confirmada em um sistema. Gerar texto não comprova
+que um chamado foi aberto, uma mensagem enviada ou um diário atualizado.
 
-**Fabric IQ: semântica educacional**
-   A ontologia nativa define entidades, relacionamentos e o significado dos
-   dados, vinculados às fontes governadas. O contrato final exige ontologia
-   e Data Agent publicados e conectados no Fabric; um grafo ilustrativo ou
-   um arquivo JSON isolado não satisfaz essa responsabilidade.
+Como a arquitetura se distribui em Azure e Fabric
+-------------------------------------------------
 
-**Dados e agentes educacionais: capacidades especializadas**
-   Sistemas transacionais continuam sendo fontes de registro. Agentes
-   especialistas continuam responsáveis por sua função. A integração
-   reúne essas capacidades sem presumir que um agente deva ser reescrito
-   ou que todos os sistemas compartilhem a mesma base.
+.. image:: docs/images/horizonte-azure.png
+   :alt: Visão de implantação: Microsoft 365 SaaS, backend e agentes no Azure Container Apps, Azure OpenAI, Blob, ACR e Log Analytics; workspace Fabric com Data Agent, ontologia e Lakehouse, sob identidades distintas.
+   :width: 100%
+   :target: docs/images/horizonte-azure.svg
 
-Ontologia: de tabelas a significado
-----------------------------------
+`Abrir imagem vetorial <docs/images/horizonte-azure.svg>`_ |
+`Editar diagrama no Excalidraw <docs/images/horizonte-azure.excalidraw>`_
 
-O domínio conecta **Professor, Turma, Aula, Habilidade Curricular, Atividade,
-Evidência, Material, Espaço Escolar, Pendência e Intervenção Pedagógica**.
+**São três fronteiras de serviço, não uma única aplicação no Azure.**
+Copilot opera no Microsoft 365; o backend de integração opera na assinatura
+Azure; Data Agent, ontologia e Lakehouse são itens de um workspace Fabric.
+A capacidade Fabric pode ser provisionada e cobrada pelo Azure, mas esses
+itens não são containers dentro do Container Apps.
 
-.. code-block:: text
+.. list-table::
+   :header-rows: 1
+   :widths: 24 42 34
 
-   Professor -- leciona --> Turma -- possui --> Aula
-   Aula -- desenvolve --> Habilidade Curricular
-   Atividade -- avalia --> Habilidade Curricular
-   Atividade -- produz --> Evidencia -- fundamenta --> Intervencao
-   Aula -- utiliza --> Material
-   Aula -- depende de --> Espaco Escolar
-   Pendencia -- afeta --> Aula
-   Intervencao -- propoe --> Material / Atividade / Rascunho
+   * - Serviço / local
+     - Papel no desenho
+     - O que a TI administra
+   * - **Microsoft 365 Copilot**
+     - Experiência nativa, plugin e contexto de trabalho.
+     - Licenças, disponibilidade de capacidades, consentimento e políticas.
+   * - **Azure Container Apps**
+     - Hospeda MCP, adaptadores e serviços dos agentes de referência.
+       Expõe HTTPS; não hospeda uma cópia do Copilot.
+     - Revisões, escala, sondas, limites, configuração e identidades.
+   * - **Azure OpenAI**
+     - Inferência dos agentes de referência de suporte e escrita.
+       Não é o modelo interno do Copilot nem a ontologia.
+     - Deployment de modelo, quotas, tokens, filtros e localização do processamento.
+   * - **Azure Blob Storage**
+     - Estado operacional, rascunhos e trilha de ações do backend.
+       Não é o Lakehouse nem o registro escolar oficial.
+     - RBAC, retenção e concorrência por ETag.
+   * - **Azure Container Registry**
+     - Armazena a imagem versionada usada pelo Container Apps.
+     - Builds, permissões de leitura, versões e política de imagens.
+   * - **Azure Monitor / Log Analytics**
+     - Telemetria operacional para localizar falhas e medir comportamento.
+     - Alertas, correlação e retenção; sem segredos ou dados escolares em logs.
+   * - **Capacidade + workspace Fabric**
+     - Recursos de processamento e fronteira de organização dos itens.
+     - Capacidade, papéis, configurações do tenant e acesso às fontes.
+   * - **Fabric Data Agent + ontologia**
+     - Consulta de negócio e semântica nativas.
+     - Publicação, bindings, relações, atualização e qualidade das respostas.
+   * - **OneLake / Lakehouse**
+     - Camada governada de dados analíticos.
+     - Tabelas, histórico, qualidade, contratos e frequência de atualização.
+   * - **Microsoft Entra ID**
+     - Identidade de usuário e de serviços, com permissões distintas.
+     - Escopos, credenciais, consentimento, rotação e menor privilégio.
 
-Uma **habilidade curricular** descreve uma aprendizagem. Uma **skill de AI**
-descreve um procedimento executável. São conceitos distintos.
+Perfil do laboratório e decisões de produção
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As relações permitem responder perguntas que nenhum sistema isolado resolve:
-qual objetivo preservar quando o laboratório fecha, que evidência justifica
-retomar frações ou se uma pendência resulta de calendário, registro ou suporte.
+Os templates usam **Container Apps Consumption**, 0,25 vCPU / 0,5 GiB e escala
+de 0 a 1 réplica; **ACR Basic**, **Blob Standard LRS**, **Log Analytics** com
+retenção de 30 dias e **Azure OpenAI GlobalStandard** para os especialistas.
+Esse é um perfil de laboratório, não um dimensionamento de rede educacional.
 
-Cada evidência deve conservar fonte, período, granularidade, identificador e
-versão da regra aplicável. Indicadores mantêm numerador e denominador.
-**Acesso à plataforma, atividade concluída e presença não equivalem a
-aprendizagem demonstrada.**
+App e armazenamento usam ``brazilsouth``; o recurso Azure OpenAI usa
+``eastus2`` com processamento GlobalStandard. **A região do recurso não é
+garantia de residência do processamento.** O uso demonstrativo é sintético;
+dados reais exigem avaliação de localização, transferência e contratos.
 
-Ingestão, federação e contexto de trabalho
+A capacidade Fabric deve atender aos requisitos dos workloads e à concorrência
+planejada. F2 é um ponto de entrada do laboratório, não uma promessa de
+desempenho para produção. Escalar o app a zero não desliga a capacidade Fabric,
+o ACR, o armazenamento nem os custos de inferência e do Copilot.
+
+O backend tem ingresso HTTPS autenticado. **Autenticação não equivale a rede
+privada:** private endpoints, WAF, API Management ou alta disponibilidade são
+decisões de produção a avaliar, não garantias implícitas deste desenho.
+
+GitHub privado guarda código, skills, definições e infraestrutura como código.
+CI valida mudanças; Bicep descreve os recursos Azure; scripts e definições
+Fabric descrevem seus itens. O ciclo de publicação do plugin e o consentimento
+no Microsoft 365 são separados do deployment do backend.
+
+Ontologia: por que não basta um chatbot sobre tabelas
+-----------------------------------------------------
+
+Uma tabela pode dizer que uma sala está indisponível. A ontologia permite
+relacionar essa sala às aulas, turmas, objetivos curriculares e materiais.
+Assim, a pergunta deixa de ser “qual é o status da sala?” e passa a ser
+**“qual aula será afetada e como preservar seu objetivo?”**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 38 62
+
+   * - Relação de negócio
+     - Pergunta que ela permite responder
+   * - Professor → Turma → Aula
+     - De qual trabalho e de qual escopo de acesso estamos falando?
+   * - Aula → Habilidade curricular ← Atividade
+     - O que se pretende desenvolver e qual atividade observa isso?
+   * - Atividade → Evidência → Intervenção
+     - Que fato sustenta a proposta de retomada?
+   * - Aula → Espaço escolar / Material
+     - Quais restrições e recursos afetam a preparação?
+   * - Pendência → Aula / Registro
+     - A causa é administrativa, pedagógica ou técnica?
+
+A ontologia nativa no Fabric IQ mantém conceitos, chaves, relações e bindings.
+O Data Agent deve ser publicado com o item de ontologia **EducationOntology**
+explicitamente vinculado pela superfície nativa suportada. Selecionar somente
+um Lakehouse ou Graph não equivale a essa integração. **Desenhar um grafo ou
+copiar seu conteúdo para um prompt também não.** Vocabulário de negócio e
+direção física das relações precisam ser mapeados explicitamente.
+
+Cada evidência conserva fonte, período, granularidade, identificador e regra
+aplicável. Métricas preservam numerador e denominador. Ausência de dados não
+significa ausência de problema, e **presença, acesso ou conclusão de atividade
+não provam aprendizagem**. Habilidade curricular é uma competência de
+aprendizagem; skill de AI é um procedimento executável.
+
+Exemplo ponta a ponta: o laboratório fechou
+-------------------------------------------
+
+**Pedido no Copilot:** “O laboratório ficou indisponível. Prepare uma alternativa
+para a próxima aula, preservando o objetivo curricular e sem depender de internet.”
+
+.. list-table::
+   :header-rows: 1
+   :widths: 13 45 42
+
+   * - Etapa
+     - O que acontece
+     - Output que o professor ou a TI consegue conferir
+   * - **1. Entender**
+     - Copilot e skill identificam turma, aula e limites da tarefa.
+     - Pedido delimitado; nenhuma leitura fora do escopo autorizado.
+   * - **2. Fundamentar**
+     - MCP consulta o Data Agent e a ontologia relaciona espaço, aula,
+       habilidade e materiais.
+     - Evidências com origem, período e relações utilizadas.
+   * - **3. Especializar**
+     - Um agente de suporte, se necessário, recebe apenas o contexto da pendência.
+     - Triagem técnica e proposta de encaminhamento, não um chamado enviado.
+   * - **4. Preparar**
+     - Cowork compõe alternativas, instruções e uma atividade de saída.
+     - Kit de aula editável, com opção offline e materiais seguros.
+   * - **5. Adaptar**
+     - Se solicitado, Code cria um organizador de estações a partir desse contexto.
+     - Ferramenta ajustável pelo professor, sem credenciais embutidas.
+   * - **6. Revisar**
+     - O professor escolhe a alternativa e revisa qualquer proposta de comunicação.
+     - Decisão humana; nenhum registro oficial alterado apenas por gerar o kit.
+
+As etapas são um exemplo de contrato de execução, não uma transcrição de uma
+consulta. Dados ausentes e falhas devem ser exibidos; não há resposta de
+sucesso fabricada nem substituição silenciosa de uma fonte.
+
+Outros cenários com impacto no dia a dia
 ----------------------------------------
 
-O pattern não exige copiar tudo para um único banco.
+**Suporte ao diário, sem preencher pelo professor**
+   Relacionar calendário, aula realizada e pendência. Acionar o especialista
+   de suporte e devolver passos verificáveis. Output: triagem e rascunho de
+   encaminhamento, não frequência lançada.
 
-* **Ingestão:** consolida dados quando histórico, qualidade e atualização
-  controlada justificam materialização em OneLake/Lakehouse.
-* **Federação ou referências a dados:** utiliza mecanismos suportados pela
-  fonte e pelo Fabric, com credenciais e permissões governadas. Não significa
-  que qualquer sistema possua API pública ou acesso sem cópia.
-* **Contexto Microsoft 365:** materiais e colaboração autorizados complementam
-  o trabalho pelo Copilot/Work IQ. Não substituem a ontologia dos dados.
-* **Integração de agentes:** invoca serviços por contratos aprovados, limitando
-  contexto, ferramentas e permissões. Estar ligado a um lakehouse não concede
-  autoridade para agir em sistemas externos.
+**Recomposição de aprendizagem, sem rotular estudantes**
+   Usar evidências por habilidade para propor estações e uma pergunta de saída.
+   Output: plano revisável com agrupamentos pedagógicos temporários, não
+   classificação fixa ou inferência clínica.
 
-Nesta demonstração, registros, turmas, textos e situações escolares são
-sintéticos. Os agentes de suporte e escrita são referências genéricas.
-Conectar sistemas reais exige APIs, contratos e autorização institucional.
+**Oficina de reescrita, não fábrica de notas**
+   Conectar texto sintético, rubrica e sugestões do especialista.
+   Output: feedback fundamentado e alternativas de revisão, não nota publicada.
 
-Uma pergunta, vários sistemas, uma resposta
-------------------------------------------
+**Ferramenta pequena, criada para um problema real**
+   Usar Code nativo para construir um laboratório de frações, organizador de
+   estações ou editor de rubricas. Output: artefato governado e ajustável;
+   a necessidade não fica restrita a três widgets predefinidos.
 
-1. O professor expressa um objetivo no Copilot nativo.
-2. A skill identifica a turma e o escopo autorizado.
-3. MCP encaminha a consulta ao Data Agent, fundamentado na ontologia Fabric IQ.
-4. O resultado reúne evidências dos dados governados, com sua proveniência.
-5. Quando necessário, a skill aciona um agente especialista com esse contexto.
-6. Copilot compõe explicação, alternativas e um artefato adequado ao trabalho.
-7. O professor revisa; qualquer ação externa segue autorização específica.
+**Preparação proativa da semana**
+   Dar ao Autopilot nativo um objetivo, frequência, escopo e condição de parada.
+   Output: evidências novas e rascunhos preparados para revisão. Uma skill não
+   cria agenda por si só; um job Azure não é apresentado como Autopilot.
 
-**Evidência, interpretação, sugestão e execução são estados diferentes.**
-A resposta deve permitir reconhecer cada um, inclusive quando há falha,
-informação ausente ou dados de períodos distintos.
+Integração sem substituir os sistemas de origem
+-----------------------------------------------
 
-Cenários que mostram o valor
----------------------------
+**Dados estruturados:** ingestão materializa o que exige histórico e controle
+de qualidade; federação ou shortcuts usam os mecanismos suportados pela fonte.
+Não se presume que todos os sistemas possuam APIs abertas nem que toda
+integração elimine cópias.
 
-**“O laboratório ficou indisponível. Como mantenho minha aula?”**
-   A ontologia conecta espaço, aula, turma, objetivo curricular e materiais.
-   Cowork prepara uma alternativa offline, como um escape room da água com
-   materiais comuns e seguros. Um encaminhamento de suporte fica em rascunho.
-   Não se afirma que uma sala foi reservada ou um chamado enviado.
+**Materiais e colaboração:** Microsoft 365 / Work IQ complementam a tarefa
+com o contexto permitido ao usuário. Não constituem uma cópia irrestrita
+dos documentos nem substituem o modelo semântico dos dados.
 
-**“Meu diário está pendente. É calendário, registro ou problema técnico?”**
-   Copilot reúne os fatos e consulta o agente de suporte docente.
-   A triagem explica dependências e prepara próximos passos. Suporte ao
-   diário não significa preenchimento autônomo de frequência ou registro.
+**Agentes existentes:** cada adaptador define API aprovada, autenticação,
+escopo, esquema de entrada/saída, timeout e erro. O especialista recebe
+contexto mínimo e retorna sua contribuição ao Copilot.
 
-**“Quero retomar frações sem transformar alunos em rótulos.”**
-   Evidências por habilidade orientam atividades e agrupamentos temporários.
-   Cowork prepara estações e uma pergunta de saída; o professor decide a
-   adequação. Uso de plataforma não vira diagnóstico de aprendizagem.
+**Registros oficiais:** continuam nos sistemas transacionais. A demonstração
+usa adaptadores sintéticos e agentes de referência; conectar serviços reais
+exige contratos, autorização institucional e proteção de dados.
 
-**“Preciso de uma ferramenta que ainda não existe.”**
-   Code nativo cria, por exemplo, um organizador de estações, um laboratório
-   interativo de frações ou uma oficina de rubricas, usando contexto
-   autorizado. A necessidade define o artefato, não uma lista fixa de widgets.
-   Credenciais nunca são embutidas no código gerado.
+Como a TI governa e opera
+-------------------------
 
-**“Antecipe minha semana, mas deixe as decisões comigo.”**
-   Autopilot nativo acompanha um objetivo explicitamente autorizado, consulta
-   evidências e prepara opções de aula, pendências e rascunhos. O professor
-   define frequência, escopo, limites e condição de parada. Uma skill, sozinha,
-   não cria uma agenda; um job Azure não é apresentado como Autopilot.
+Identidade e autorização em três fronteiras
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**“Quero uma oficina de reescrita, não uma fábrica de notas.”**
-   O agente especialista relaciona texto sintético, rubrica e evidências.
-   Copilot organiza feedback e alternativas de revisão, preservando a voz
-   do autor. A devolutiva exige revisão docente e não publica nota automática.
+1. **Copilot → MCP:** OAuth Entra delegado, configuração no
+   ``OAuthPluginVault``, validação de emissor, audiência, expiração, escopo e
+   usuário. O manifesto contém referência, nunca segredo.
+2. **Backend → Azure:** identidade gerenciada atribuída pelo usuário (UAMI)
+   e RBAC para modelo, armazenamento e imagens. Identidade técnica não
+   substitui autorização docente.
+3. **Backend → Fabric:** usuário delegado ou service principal suportado pelo
+   Data Agent, com acesso próprio ao workspace e às fontes. A identidade
+   gerenciada usada nos serviços Azure não é suportada nesse contrato de
+   runtime do Data Agent. Um token do MCP não concede acesso automático ao
+   Fabric; preferir menor privilégio no runtime.
 
-Identidade, segurança e revisão humana
--------------------------------------
+O diagrama de implantação escolhe um service principal dedicado para o Fabric.
+Nesse fluxo, o token do professor não é propagado automaticamente à fonte:
+o escopo docente precisa de controle independente e verificável na camada de
+acesso aos dados. Uma identidade de aplicação com acesso amplo não é isolada
+por simplesmente mencionar a turma no prompt.
 
-**Usuário e serviço têm identidades diferentes.** OAuth autentica o acesso
-do Copilot ao MCP. Identidades gerenciadas e permissões específicas protegem
-as chamadas Azure. Acesso ao Fabric exige configuração e autorização próprias;
-um token válido no MCP não concede automaticamente acesso aos dados.
+**Filtro em prompt não é controle de acesso.** O isolamento por professor,
+turma e tenant deve existir nas fronteiras de autorização e de dados.
+Credenciais ficam fora de código, artefatos, logs e conversas.
 
-O conector nativo usa ``OAuthPluginVault``: o manifesto contém apenas a
-referência da configuração de autenticação, nunca client secret ou token.
-O backend valida emissor, audiência, expiração, tenant, escopo e usuário.
-Autorização por professor/turma deve ser aplicada em cada fronteira relevante.
+Revisão humana e proteção dos estudantes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As ferramentas de consulta e os agentes de referência não alteram registros
-oficiais. Para qualquer integração de escrita, o pattern exige mostrar
-**destino, conteúdo exato, versão e efeito**, obter aprovação e validar essa
-aprovação no serviço executor, com idempotência e auditoria.
+Antes de uma escrita real, mostrar destino, conteúdo exato, versão e efeito.
+O serviço executor valida a aprovação e a permissão, evita duplicação e
+registra o resultado. Sem confirmação, o output permanece um rascunho.
 
-Dados de estudantes exigem finalidade, minimização, retenção e governança
-apropriadas. Não inferir condições clínicas, deficiência, contexto familiar
-ou capacidade fixa. Documentos e saídas de ferramentas são dados não confiáveis,
-não instruções para ampliar permissões ou executar ações.
+Finalidade, minimização, retenção e melhor interesse dos estudantes orientam
+o uso de dados. Não inferir deficiência, condição clínica, contexto familiar
+ou capacidade fixa. Documentos e saídas de agentes são dados não confiáveis,
+não instruções para aumentar permissões ou executar comandos.
 
-Pré-requisitos para executar o pattern
--------------------------------------
+Responsabilidades operacionais
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Ambiente Microsoft 365 com as capacidades nativas utilizadas habilitadas,
-  licenciamento, política de uso e instalação do plugin compatíveis.
-* Workspace e capacidade Fabric adequados, dados sintéticos governados,
-  ontologia Fabric IQ e Data Agent nativos publicados e conectados pelo
-  mecanismo suportado no ambiente.
-* Backend Azure com HTTPS, OAuth, autorização, conectividade e identidades
-  de serviço; agentes especialistas com contratos explicitamente configurados.
-* Consentimento para o conector e acesso às fontes necessárias.
-* Orçamento e governança para capacidade Fabric, modelos, armazenamento,
-  logs e execução. Escalar uma aplicação a zero não elimina esses custos.
+* **Equipe pedagógica:** objetivos, rubricas, qualidade dos materiais e revisão.
+* **Equipe de dados:** contratos, chaves, bindings, atualização e proveniência.
+* **Equipe de integração/plataforma:** MCP, agentes, disponibilidade e deployments.
+* **Segurança e administração M365/Fabric:** identidades, políticas e consentimento.
+* **Operação e FinOps:** erros, latência, consumo, retenção e custo por tarefa.
 
-A disponibilidade de uma experiência Copilot não implica a disponibilidade
-das demais, nem garante que um plugin instalado em uma superfície funcione
-automaticamente em todas. Uma capacidade indisponível não deve ser emulada
-e apresentada como nativa.
+Correlacionar uma solicitação entre MCP, Fabric e especialistas, registrando
+metadados operacionais necessários — não o conteúdo integral de estudantes.
+Falha de fonte, falta de permissão e recusa de execução devem ser distinguíveis.
+Não há benefício em responder rápido com evidências erradas.
 
-Leitura e operação
------------------
+Como demonstrar impacto sem prometer números
+--------------------------------------------
 
-* `Conexão do plugin ao Copilot nativo <docs/native-copilot.rst>`_.
-* `Provisionamento e contratos nativos Fabric <docs/fabric-operations.rst>`_.
-* `Cenários e roteiro de demonstração <docs/scenarios.rst>`_.
-* `Operação Azure <docs/deployment.rst>`_.
-* `Custos e dimensionamento <docs/costs.rst>`_.
-* `Governança para sistemas reais <docs/production.rst>`_.
+.. list-table::
+   :header-rows: 1
+   :widths: 25 42 33
+
+   * - Dimensão
+     - Indicador do piloto
+     - Como interpretar
+   * - Tempo docente
+     - Tempo até um plano revisado e utilizável; quantidade de trocas de sistema.
+     - Comparar tarefas equivalentes antes/depois; incluir o tempo de revisão.
+   * - Qualidade pedagógica
+     - Adequação ao objetivo, uso de evidências e esforço de correção pelo professor.
+     - Avaliação humana com rubrica; não apenas satisfação com a resposta.
+   * - Suporte
+     - Triagens úteis, reincidência e encaminhamentos incompletos.
+     - Não confundir resposta automática com problema resolvido.
+   * - Confiança e segurança
+     - Proveniência conferível, acessos negados e ações sem aprovação.
+     - Tratar violação de permissão ou escrita não autorizada como falha de aceite.
+   * - Operação e custo
+     - Sucesso das chamadas, latência e custo por tarefa concluída.
+     - Separar Copilot, capacidade Fabric, modelos e infraestrutura Azure.
+
+O piloto deve começar com dados sintéticos, tarefas representativas e revisão
+docente. Benefícios de aprendizagem requerem avaliação pedagógica apropriada;
+não podem ser atribuídos automaticamente ao uso da ferramenta.
+
+Pré-requisitos e documentação técnica
+--------------------------------------
+
+O pattern depende de capacidades nativas Copilot habilitadas, plugin autorizado,
+workspace/capacidade Fabric adequados, ontologia e Data Agent publicados,
+fontes governadas, conectividade e identidades com escopo correto.
+A disponibilidade de uma superfície Copilot não garante as demais.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Quero entender…
+     - Onde ler
+   * - Instalação do plugin e consentimento
+     - `Copilot nativo <docs/native-copilot.rst>`_
+   * - Itens, bindings e consulta nativa
+     - `Operação Fabric <docs/fabric-operations.rst>`_
+   * - Templates e publicação no Azure
+     - `Implantação <docs/deployment.rst>`_
+   * - Roteiro de demonstração
+     - `Cenários <docs/scenarios.rst>`_
+   * - Medidores e dimensionamento
+     - `Custos <docs/costs.rst>`_
+   * - Contratos e governança para dados reais
+     - `Produção <docs/production.rst>`_
 
 Referências oficiais
 --------------------
 
-* `Home, Code e Autopilot
+* `Copilot Home, Code e Autopilot
   <https://blogs.microsoft.com/blog/2026/09/25/introducing-the-new-copilot-with-home-code-and-autopilot/>`_.
 * `Extensibilidade do Copilot
   <https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/overview>`_.
-* `Plugins nativos Cowork
+* `Plugins Cowork
   <https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/cowork-plugin-development>`_.
 * `OAuth para MCP
   <https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/plugin-authentication-oauth>`_.
-* `OneLake e referências a dados
-  <https://learn.microsoft.com/en-us/fabric/onelake/onelake-shortcuts>`_.
-* `Ontologia no Fabric Data Agent
+* `Ontologia e Fabric Data Agent
   <https://learn.microsoft.com/en-us/fabric/iq/ontology/tutorial-4-create-data-agent>`_.
-* `Endpoint MCP do Fabric Data Agent
+* `MCP do Fabric Data Agent
   <https://learn.microsoft.com/en-us/fabric/data-science/data-agent-mcp-server>`_.
+* `OneLake shortcuts
+  <https://learn.microsoft.com/en-us/fabric/onelake/onelake-shortcuts>`_.
+
+Fontes editáveis das imagens
+----------------------------
+
+PNG é a versão embutida no README; SVG permite ampliar sem perder definição;
+Excalidraw permite reorganizar os componentes. As três versões ficam juntas
+em ``docs/images``. Para regenerar a partir do layout versionado:
+
+.. code-block:: powershell
+
+   node scripts\render-architecture.mjs --png
+
+O gerador não baixa fontes nem pacotes. PNG usa um navegador Chromium local;
+``ARCHITECTURE_BROWSER`` permite indicar seu executável. Sem ``--png``,
+o comando produz SVG e Excalidraw.
