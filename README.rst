@@ -214,7 +214,7 @@ O backend tem ingresso HTTPS autenticado. **Autenticação não equivale a rede
 privada:** private endpoints, WAF, API Management ou alta disponibilidade são
 decisões de produção a avaliar, não garantias implícitas deste desenho.
 
-GitHub privado guarda código, skills, definições e infraestrutura como código.
+O repositório GitHub guarda código, skills, definições e infraestrutura como código.
 CI valida mudanças; Bicep descreve os recursos Azure; scripts e definições
 Fabric descrevem seus itens. O ciclo de publicação do plugin e o consentimento
 no Microsoft 365 são separados do deployment do backend.
@@ -395,8 +395,8 @@ metadados operacionais necessários — não o conteúdo integral de estudantes.
 Falha de fonte, falta de permissão e recusa de execução devem ser distinguíveis.
 Não há benefício em responder rápido com evidências erradas.
 
-Como demonstrar impacto sem prometer números
---------------------------------------------
+Impacto
+-------
 
 .. list-table::
    :header-rows: 1
@@ -469,6 +469,16 @@ Referências oficiais
   <https://learn.microsoft.com/en-us/fabric/data-science/data-agent-mcp-server>`_.
 * `OneLake shortcuts
   <https://learn.microsoft.com/en-us/fabric/onelake/onelake-shortcuts>`_.
+
+Código aberto à leitura, serviços protegidos
+---------------------------------------------
+
+A visibilidade do repositório não concede acesso ao ambiente Azure, ao Fabric
+ou ao Microsoft 365. Configurações de tenant, credenciais, consentimentos e
+permissões são fornecidos separadamente por quem opera cada implantação.
+Os dados educacionais versionados são sintéticos; arquivos de execução e
+segredos não pertencem ao Git. Consulte a `orientação de segurança
+<docs/security.rst>`_ antes de implantar ou relatar um problema.
 
 Fontes editáveis das imagens
 ----------------------------

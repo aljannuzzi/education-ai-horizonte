@@ -209,7 +209,7 @@ pattern.text(40, 1464, 1680, '² Agentes independentes por APIs aprovadas. Azure
 pattern.save();
 
 const azure = new Diagram('horizonte-azure', 1584, 'Como a TI opera em Azure e Fabric',
-  'Arquitetura de referência, não prova de provisionamento. Microsoft 365 e Entra ID são serviços externos ao resource group. OAuth delegado autentica o professor no MCP Horizonte em Azure Container Apps Consumption. O aplicativo contém MCP e adapters; especialistas usam Azure OpenAI. Blob guarda rascunhos e auditoria, não é OneLake nem fonte oficial. A identidade gerenciada atribuída pelo usuário recebe RBAC em OpenAI, Blob e ACR. Um service principal dedicado, distinto da identidade gerenciada e do usuário, acessa o Fabric com permissão mínima no workspace e nos dados. O workspace SaaS contém Data Agent, ontologia nativa Fabric IQ e lakehouse no OneLake. A capacidade F2 ou superior tem provisionamento e cobrança ARM, mas não move o workspace para o Container App. GitHub privado e Bicep configuram recursos; ACR fornece a imagem OCI. Linhas tracejadas indicam deploy e telemetria, não consultas de dados.');
+  'Arquitetura de referência, não prova de provisionamento. Microsoft 365 e Entra ID são serviços externos ao resource group. OAuth delegado autentica o professor no MCP Horizonte em Azure Container Apps Consumption. O aplicativo contém MCP e adapters; especialistas usam Azure OpenAI. Blob guarda rascunhos e auditoria, não é OneLake nem fonte oficial. A identidade gerenciada atribuída pelo usuário recebe RBAC em OpenAI, Blob e ACR. Um service principal dedicado, distinto da identidade gerenciada e do usuário, acessa o Fabric com permissão mínima no workspace e nos dados. O workspace SaaS contém Data Agent, ontologia nativa Fabric IQ e lakehouse no OneLake. A capacidade F2 ou superior tem provisionamento e cobrança ARM, mas não move o workspace para o Container App. GitHub e Bicep configuram recursos; ACR fornece a imagem OCI. Linhas tracejadas indicam deploy e telemetria, não consultas de dados.');
 azure.heading('HORIZONTE  /  02  /  ARQUITETURA DE REFERÊNCIA', 'Fronteiras de execução, identidades e operação • nomes genéricos • dados sintéticos');
 azure.boundary(40, 176, 1680, 168, 'Acesso · serviços externos ao resource group', 'blue');
 azure.box(72, 232, 528, 88, '01 · Copilot nativo / M365', '', 'blue');
@@ -255,7 +255,7 @@ azure.box(1184, 1064, 512, 128, '11 · Capacidade Fabric F2+',
   'ARM: provisionamento e cobrança\nWorkspace e permissões: SaaS', 'green', 23);
 azure.text(1208, 1208, 480, 'Capacidade não é o workspace.', 22);
 
-azure.box(72, 1360, 304, 136, 'GitHub privado',
+azure.box(72, 1360, 304, 136, 'GitHub',
   'Bicep + build OCI\nConfiguração / IaC', 'neutral', 23);
 azure.arrow([[216, 1360], [216, 1192]], { dashed: true });
 azure.text(88, 1288, 288, 'build → ACR', 22);

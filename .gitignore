@@ -19,3 +19,8 @@ infra/*.json
 deployment*.json
 *.pem
 *.key
+**/*credentials*.json
+**/oauth-client.json
+**/fabric-identity.json
+*.pfx
+*.p12

@@ -14,3 +14,10 @@ docs
 fabric/preflight.json
 fabric/deployment.json
 fabric/generated
+**/*credentials*.json
+**/oauth-client.json
+**/fabric-identity.json
+*.pem
+*.key
+*.pfx
+*.p12
