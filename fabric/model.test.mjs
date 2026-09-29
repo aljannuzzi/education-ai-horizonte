@@ -61,6 +61,7 @@ test('all 12 arrays have exact native bindings, types and matching managed table
       sourceTableProperties: { sourceType: 'LakehouseTable', workspaceId: workspace, itemId: lakehouse,
         sourceTableName: entity.table, sourceSchema: 'dbo' },
     });
+
     assert.equal(entity.rowCount, dataset[entity.entity].length);
     for (const p of entity.properties) {
       const values = dataset[entity.entity].map(row => row[p.name]).filter(v => v != null);
@@ -69,6 +70,18 @@ test('all 12 arrays have exact native bindings, types and matching managed table
       assert.equal(p.valueType, expected);
     }
     assert.ok(notebook.cells.some(cell => cell.source.join('').includes(`saveAsTable('${entity.table}')`)));
+  }
+});
+
+test('native JSON type discriminators precede all table-binding fields', () => {
+  for (const part of artifacts.ontologyDefinition.parts) {
+    const text = Buffer.from(part.payload, 'base64').toString('utf8');
+    if (part.path.includes('/DataBindings/')) {
+      assert.match(text, /"sourceTableProperties":\{"sourceType":"LakehouseTable",/);
+    }
+    if (part.path.includes('/Contextualizations/')) {
+      assert.match(text, /"dataBindingTable":\{"sourceType":"LakehouseTable",/);
+    }
   }
 });
 

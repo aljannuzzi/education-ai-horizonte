@@ -3,9 +3,10 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 import { DefaultAzureCredential } from '@azure/identity';
+import { z } from 'zod';
 import type { ChatRequest } from '../shared/contracts.js';
 import { createApp } from '../server/app.js';
-import { createReasoner, MODEL_NAME, MODEL_SCOPE, ModelError, routingSchema } from '../server/llm.js';
+import { createJsonModel, createReasoner, MODEL_NAME, MODEL_SCOPE, ModelError, routingSchema } from '../server/llm.js';
 import { classes, defaultToolSpec } from '../server/semantic.js';
 import { createMemoryStore } from '../server/store.js';
 
@@ -106,6 +107,61 @@ test('all live intents are selected by validated model output, not mode or keywo
   }
 });
 
+test('Azure 400 invalid regex regression: omit only Unicode property patterns and retain local validation', async () => {
+  const { $schema: _dialect, ...original } = z.toJSONSchema(routingSchema, { target: 'draft-7' });
+  const expected = structuredClone(original);
+  const title = (schema: any) => schema.properties.parameters.properties.tool.anyOf[0].properties.title;
+  const pattern = title(original).pattern;
+  assert.match(pattern, /\\p\{L\}/);
+  delete title(expected).pattern;
+  let calls = 0;
+  let value: unknown = route;
+  const azure: typeof fetch = async (_url, init) => {
+    calls++;
+    const schema = JSON.parse(String(init?.body)).response_format.json_schema.schema;
+    if (title(schema).pattern) {
+      return Response.json({ error: { code: null,
+        message: `Invalid schema for response_format 'teacher_route': ${JSON.stringify(pattern)} is not a 'regex'.`,
+      } }, { status: 400 });
+    }
+    assert.deepEqual(schema, expected);
+    return completion(value);
+  };
+  // Reproduce the real upstream rejection with the unmodified Zod schema.
+  assert.equal((await azure(env.AZURE_OPENAI_ENDPOINT, {
+    body: JSON.stringify({ response_format: { json_schema: { schema: original } } }),
+  })).status, 400);
+  const model = createReasoner(env, { credential, fetch: azure });
+  assert.equal((await model.route(request)).intent, 'lesson');
+  for (const text of ['Aula de frações', 'https://attacker.example', '<script>', 'x'.repeat(101)]) {
+    value = { ...route, intent: 'tool', parameters: { tool: { ...defaultToolSpec('fraction-lab'), title: text } } };
+    if (text === 'Aula de frações') assert.equal((await model.route(request)).toolSpec?.title, text);
+    else await assert.rejects(model.route(request), failed);
+  }
+  assert.equal(title(original).pattern, pattern);
+  assert.equal(calls, 6);
+});
+
+test('shared model adapts nested schemas without mutating input or removing compatible patterns', async () => {
+  const schema = {
+    type: 'object', additionalProperties: false, required: ['pattern', 'rows'],
+    properties: {
+      pattern: { type: 'string', pattern: '^[A-Z]+$', minLength: 1, maxLength: 10 },
+      rows: { type: 'array', minItems: 1, maxItems: 3,
+        items: { anyOf: [{ type: 'string', pattern: '^\\p{L}+$' }, { type: 'null' }] } },
+    },
+  };
+  const before = structuredClone(schema);
+  const expected = structuredClone(schema);
+  delete (expected.properties.rows.items.anyOf[0] as { pattern?: string }).pattern;
+  const model = createJsonModel(env, { credential, fetch: async (_url, init) => {
+    assert.deepEqual(JSON.parse(String(init?.body)).response_format.json_schema.schema, expected);
+    return completion({});
+  } });
+  await model.complete('Synthetic test', {}, schema);
+  assert.deepEqual(schema, before);
+});
+
 test('model validates ownership and request shape before any token or network request', async () => {
   let calls = 0;
   const model = createReasoner(env, {
@@ -166,6 +222,24 @@ test('HTTP statuses, refusals, truncated output, malformed JSON and oversized re
       return true;
     });
     assert.equal(calls, 1);
+  }
+});
+
+test('HTTP diagnostics retain only status and a fixed internal code, never the Azure body', async () => {
+  for (const status of [400, 401, 429, 503]) {
+    const model = createReasoner(env, {
+      credential, fetch: async () => Response.json({
+        error: { code: 'SECRET_UPSTREAM_CODE', message: 'SECRET_UPSTREAM_MESSAGE' },
+      }, { status }),
+    });
+    await assert.rejects(model.route(request), error => {
+      assert.ok(error instanceof ModelError);
+      assert.ok(failed(error));
+      assert.deepEqual(error.cause, { code: 'MODEL_HTTP_ERROR', httpStatus: status });
+      assert.doesNotMatch(JSON.stringify(error), /cause|httpStatus|SECRET_/);
+      assert.doesNotMatch(String(error), /SECRET_/);
+      return true;
+    });
   }
 });
 

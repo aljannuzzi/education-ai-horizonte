@@ -7,10 +7,12 @@ import { ErrorCode, McpError, type CallToolResult } from '@modelcontextprotocol/
 import { z } from 'zod';
 import type { ApiError } from '../shared/contracts.js';
 import { HttpError } from './auth.js';
-import { adapterContracts, classes, executeSkill, ontology, skills, systems, teacher } from './semantic.js';
+import { skills, systems } from './semantic.js';
 import { agentInput, agentRegistry, createEducationAgents, type EducationAgents } from './agents.js';
 import { ModelError } from './llm.js';
 import { createEntraAuth, EntraAuthError, type EntraAuthOptions } from '../integrations/entra.js';
+import { createDataProvider, type DataProvider } from './data-provider.js';
+import { FabricError } from './fabric.js';
 
 const executeInput = z.strictObject({
   skillId: z.enum(skills.map(skill => skill.id) as [string, ...string[]]).describe('ID de list_skills: suporte/diário, avaliação, biblioteca ou espaços.'),
@@ -20,11 +22,15 @@ const digest = (value: string) => createHash('sha256').update(value).digest();
 const equal = (left: string, right: string) => timingSafeEqual(digest(left), digest(right));
 const toolError = (text: string): CallToolResult => ({ isError: true, content: [{ type: 'text', text }] });
 
-export interface McpOptions { env?: NodeJS.ProcessEnv; agents?: EducationAgents }
+export interface McpOptions { env?: NodeJS.ProcessEnv; agents?: EducationAgents; dataProvider?: DataProvider }
 
 export function createSemanticMcpServer(options: McpOptions = {}): McpServer {
   const server = new McpServer({ name: 'horizonte-semantic', version: '1.0.0' });
-  const agents = options.agents ?? createEducationAgents(options.env ?? process.env);
+  const env = options.env ?? process.env;
+  const provider = options.dataProvider ?? createDataProvider({
+    ...env, HORIZONTE_DATA_PROVIDER: env.HORIZONTE_DATA_PROVIDER ?? 'synthetic',
+  });
+  const agents = options.agents ?? createEducationAgents(env, { dataProvider: provider });
   const tools = new Map<string, { schema: z.ZodType; keys: string[]; run: (input: unknown) => CallToolResult | Promise<CallToolResult> }>();
   const content = (value: Record<string, unknown>): CallToolResult => ({
     content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value,
@@ -40,29 +46,28 @@ export function createSemanticMcpServer(options: McpOptions = {}): McpServer {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: !ai, openWorldHint: ai },
     }, run);
   }
-  const execute = ({ skillId, classId }: z.infer<typeof executeInput>): CallToolResult => {
+  const execute = async ({ skillId, classId }: z.infer<typeof executeInput>): Promise<CallToolResult> => {
     try {
-      const result = executeSkill(skillId, classId);
+      const result = await provider.executeSkill(skillId, classId);
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
         structuredContent: { ...result },
       };
     } catch (error) {
+      if (error instanceof FabricError) return toolError(`FABRIC_${error.code}: a consulta nativa falhou; nenhum resultado sintético foi substituído.`);
       return toolError(error instanceof Error && 'code' in error && error.code === 'CLASS_FORBIDDEN'
         ? 'Turma não autorizada para esta professora.'
         : 'Não foi possível consultar a skill semântica.');
     }
   };
-  register('execute_skill', 'Consulta determinística somente leitura de evidências escolares sintéticas, com registros, números, proveniência e caminhos. Sem modelo, gravação ou aprovação.', executeInput, execute);
-  register('describe_ontology', 'Descubra entidades, relações e mapeamento de sistemas sintéticos: suporte, avaliação, biblioteca e espaços. Motor customizado, não Fabric nativo.', z.strictObject({}), () => content({
-    ...ontology, systems, adapters: adapterContracts, engine: 'custom-semantic-engine', nativeFabric: false,
+  register('execute_skill', `Consulta somente leitura de evidências escolares sintéticas com proveniência. Provider configurado: ${provider.kind}. Em Fabric, consulta o Data Agent nativo sem fallback local. Nenhuma gravação ou aprovação.`, executeInput, execute);
+  register('describe_ontology', `Descubra entidades, relações e fontes educacionais. Provider: ${provider.kind}. A resposta distingue definição configurada de execução nativa comprovada.`, z.strictObject({}), async () => content({
+    ...await provider.describeOntology(),
     synthetic: true, readOnly: true,
     limits: 'Copilot nativo Home/Cowork/Code/Autopilot conduz raciocínio, arquivos e agendamento. MCP não oferece chat, runtime nativo, escrita, aprovações ou jobs.',
     externalConnectorContract: 'Futuros conectores autorizados devem implementar consulta somente leitura por turma, retornar evidência e proveniência e ser registrados no servidor; nenhum endpoint ou provedor é selecionado pelo chamador. Nenhum agente de cliente integrado.',
   }));
-  register('list_classes', 'Liste somente turmas da professora fixa sintética e seus IDs para consultas autorizadas.', z.strictObject({}), () => content({
-    teacher, classes, synthetic: true, readOnly: true,
-  }));
+  register('list_classes', 'Consulte as turmas autorizadas para a professora sintética, usando o provider configurado.', z.strictObject({}), async () => content(await provider.listClasses()));
   register('list_skills', 'Catálogo com IDs, descrições e caminhos AI versus legados. Selecione reconcile-diary para suporte, explain-measures para avaliação, design-offline-lesson para biblioteca/espaços, review-writing para escrita. Skills são determinísticas; especialistas AI usam invoke_education_agent.', z.strictObject({}), () => content({
     skills: skills.map(skill => ({ ...skill, systems: skill.systems.map(id => systems.find(system => system.id === id)) })),
     agents: agentRegistry, syntheticConnectors: true, readOnly: true,
@@ -94,6 +99,7 @@ export function createSemanticMcpServer(options: McpOptions = {}): McpServer {
       return await tool.run(parsed.data);
     } catch (error) {
       if (error instanceof ModelError) return toolError(`${error.code}: ${error.message}`);
+      if (error instanceof FabricError) return toolError(`FABRIC_${error.code}: consulta nativa indisponível; sem fallback sintético.`);
       return toolError('Consulta indisponível ou turma não autorizada; nenhuma escrita realizada.');
     }
   });

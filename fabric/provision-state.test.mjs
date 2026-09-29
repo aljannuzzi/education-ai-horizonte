@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recoveryState, eligibleCapacity } from './provision-state.mjs';
+import { recoveryState, eligibleCapacity, operationUrl } from './provision-state.mjs';
 
 test('preflight eligibility excludes PPU, free trials, paused capacities and F1', () => {
   for (const sku of ['PP3', 'FT1', 'F1', 'P0', 'A4', undefined]) {
@@ -10,6 +10,22 @@ test('preflight eligibility excludes PPU, free trials, paused capacities and F1'
     assert.equal(eligibleCapacity({ sku, state: 'Active' }), true);
     assert.equal(eligibleCapacity({ sku, state: 'Paused' }), false);
   }
+});
+
+test('an explicitly selected active trial can be attempted without accepting PPU or paused capacity', () => {
+  assert.equal(eligibleCapacity({ sku: 'FT1', state: 'Active' }, { allowTrial: true }), true);
+  assert.equal(eligibleCapacity({ sku: 'FT1', state: 'Paused' }, { allowTrial: true }), false);
+  assert.equal(eligibleCapacity({ sku: 'PP3', state: 'Active' }, { allowTrial: true }), false);
+  assert.equal(eligibleCapacity({ sku: 'FT1', state: 'Active' }, { allowTrial: 'true' }), false);
+});
+
+test('long-running operations use the documented Fabric operation ID without forwarding auth to another host', () => {
+  const id = '22222222-2222-4222-8222-222222222222';
+  const canonical = `https://api.fabric.microsoft.com/v1/operations/${id}`;
+  assert.equal(operationUrl('https://alternate.example/operation', id), canonical);
+  assert.equal(operationUrl(canonical), canonical);
+  assert.throws(() => operationUrl('https://alternate.example/operation'), /UnsafeFabricOperation/);
+  assert.throws(() => operationUrl(`${canonical}?token=invalid`), /UnsafeFabricOperation/);
 });
 
 test('recovery preserves resource IDs and unresolved operation URLs without mutation', () => {

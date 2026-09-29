@@ -73,6 +73,20 @@ MCP_ENTRA_CLIENT_ID=<api-and-oauth-client-guid>
 MCP_ENTRA_ALLOWED_OIDS=<comma-separated-authorized-user-object-guids>
 MCP_ENTRA_SCOPE=access_as_user
 When Entra is enabled the legacy MCP_ACCESS_KEY never bypasses OAuth.
+HORIZONTE_DATA_PROVIDER=synthetic|fabric
+  Selects MCP discovery/evidence and specialist context; diagnostics /api/chat
+  remain a synthetic harness. Fabric errors never fall back to local evidence.
+FABRIC_WORKSPACE_ID=<workspace-guid>
+FABRIC_DATA_AGENT_ID=<published-agent-guid>
+FABRIC_ONTOLOGY_ID=<native-ontology-guid>
+FABRIC_AUTH_MODE=client-secret
+FABRIC_TENANT_ID=<fabric-tenant-guid>
+FABRIC_CLIENT_ID=<approved-service-principal-guid>
+FABRIC_CLIENT_SECRET=<secret-reference-only>
+  Runtime can instead receive an authorized token-provider through code.
+  Never inject a cached CLI token or use an unrelated managed identity.
+  A personal Data Agent published to Microsoft 365 uses its native user flow,
+  independently of this optional Azure-mediated integration.
 PUBLIC_ORIGIN=https://<container-app-fqdn>
 AZURE_OPENAI_ENDPOINT=https://<account>.openai.azure.com/
 AZURE_OPENAI_DEPLOYMENT=teacher-reasoning

@@ -59,11 +59,36 @@ export interface Credential {
   getToken(scope: string, options?: { abortSignal?: AbortSignal }): Promise<{ token: string } | null>;
 }
 export class ModelError extends Error {
-  constructor(public status: number, public code: string, message: string) {
-    super(message);
+  constructor(public status: number, public code: string, message: string, options?: ErrorOptions) {
+    super(message, options);
   }
 }
-const failed = () => new ModelError(502, 'MODEL_FAILED', 'Falha ao consultar ou validar o modelo Azure OpenAI; sem fallback.');
+const failed = (httpStatus?: number) => new ModelError(
+  502, 'MODEL_FAILED', 'Falha ao consultar ou validar o modelo Azure OpenAI; sem fallback.',
+  httpStatus === undefined ? undefined : { cause: { code: 'MODEL_HTTP_ERROR', httpStatus } },
+);
+
+function azureOutputSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  const result = structuredClone(schema);
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+    const value = node as Record<string, unknown>;
+    // Azure rejects JavaScript Unicode property escapes. Zod still enforces the
+    // original pattern locally; all other schema constraints stay on the wire.
+    if (typeof value.pattern === 'string' && /\\[pP]\{/.test(value.pattern)) delete value.pattern;
+    for (const keyword of ['properties', '$defs', 'definitions']) {
+      const children = value[keyword];
+      if (children && typeof children === 'object') Object.values(children).forEach(visit);
+    }
+    visit(value.items);
+    for (const keyword of ['anyOf', 'oneOf', 'allOf']) {
+      const children = value[keyword];
+      if (Array.isArray(children)) children.forEach(visit);
+    }
+  };
+  visit(result);
+  return result;
+}
 
 async function readResponse(response: Response): Promise<unknown> {
   if (!response.body) throw failed();
@@ -123,6 +148,7 @@ export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
     configured: true,
     async complete(systemInstructions: string, input: unknown, schema: Record<string, unknown>): Promise<unknown> {
       const controller = new AbortController();
+      let upstreamStatus: number | undefined;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const deadline = new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
@@ -143,10 +169,11 @@ export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
               { role: 'user', content: JSON.stringify(input) },
             ],
             max_completion_tokens: 4096,
-            response_format: { type: 'json_schema', json_schema: { name: 'teacher_route', strict: true, schema } },
+            response_format: { type: 'json_schema', json_schema: { name: 'teacher_route', strict: true, schema: azureOutputSchema(schema) } },
           }),
         });
         if (!response.ok) {
+          upstreamStatus = response.status;
           await response.body?.cancel().catch(() => undefined);
           throw failed();
         }
@@ -156,7 +183,7 @@ export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
       try {
         return await Promise.race([work(), deadline]);
       } catch {
-        throw failed();
+        throw failed(upstreamStatus);
       } finally {
         clearTimeout(timer);
         controller.abort();

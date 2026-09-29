@@ -92,7 +92,7 @@ export interface FabricHealth extends FabricMetadata {
 
 export interface FabricQueryResult extends FabricMetadata {
   tool: { name: string; inputProperty: string };
-  /** Text blocks only; transport metadata, links and embedded resources are not exposed. */
+  /** Text and bounded embedded tabular text; transport metadata and resource links are not exposed. */
   content: Array<{ type: 'text'; text: string }>;
   answer: string;
   structuredContent?: unknown;
@@ -204,10 +204,17 @@ function cleanResult(value: unknown, token: string): Pick<FabricQueryResult, 'co
   };
   if (value.content.length > 1_000) throw new FabricError('INVALID_RESULT');
   const content = value.content.map(block => {
-    if (!record(block) || block.type !== 'text' || typeof block.text !== 'string') {
-      throw new FabricError('INVALID_RESULT');
+    if (!record(block)) throw new FabricError('INVALID_RESULT');
+    if (block.type === 'text' && typeof block.text === 'string') {
+      return { type: 'text' as const, text: text(block.text) };
     }
-    return { type: 'text' as const, text: text(block.text) };
+    if (block.type === 'resource' && record(block.resource)
+      && typeof block.resource.text === 'string'
+      && ['text/csv', 'text/plain', 'application/json'].includes(String(block.resource.mimeType))) {
+      // Native Fabric embeds query rows as CSV. Never fetch its URI or propagate UI metadata.
+      return { type: 'text' as const, text: `Fabric source data (${block.resource.mimeType}):\n${text(block.resource.text)}` };
+    }
+    throw new FabricError('INVALID_RESULT');
   });
   const structuredContent = value.structuredContent === undefined ? undefined : scrub(value.structuredContent);
   if (!content.length && structuredContent === undefined) throw new FabricError('INVALID_RESULT');

@@ -41,6 +41,12 @@ test('both reference agents call Azure with authorized deterministic context and
           assert.equal(supplied.request, input.request);
           assert.equal(body.response_format.json_schema.strict, true);
           assert.equal(body.response_format.json_schema.schema.additionalProperties, false);
+          const schema = body.response_format.json_schema.schema;
+          assert.deepEqual(schema.required, ['summary', 'suggestions', 'evidenceIds', 'requiresTeacherReview']);
+          assert.equal(schema.properties.summary.maxLength, 4_000);
+          assert.equal(schema.properties.suggestions.maxItems, 8);
+          assert.deepEqual(schema.properties.evidenceIds.items.enum, ids);
+          assert.equal(schema.properties.requiresTeacherReview.const, true);
           return envelope(output(ids));
         },
       });
@@ -93,6 +99,9 @@ test('invalid evidence, cross-class evidence, unknown fields, review false and n
       { ...output(ids), suggestions: ['Acertos de 50%.'] },
       { ...output(ids), summary: 42 },
       { ...output(ids), suggestions: [] },
+      { ...output(ids), summary: 'x'.repeat(4_001) },
+      { ...output(ids), suggestions: ['x'.repeat(2_001)] },
+      { ...output(ids), suggestions: Array(9).fill('Revisar com a docente.') },
     ]) {
       let calls = 0;
       const agents = createEducationAgents(env, {

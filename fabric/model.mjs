@@ -4,7 +4,7 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PLATFORM_SCHEMA = 'https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json';
 const REFERENCES = [
   'https://learn.microsoft.com/en-us/rest/api/fabric/ontology/items/create-ontology',
-  'https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/ontology-definition',
+  'https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/ontology-old-definition',
   'https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/notebook-definition',
 ];
 const FOREIGN_KEYS = {
@@ -29,7 +29,8 @@ function canonical(value) {
 const json = value => JSON.stringify(canonical(value));
 const pascal = name => name.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join('');
 const part = (path, value) => ({
-  path, payload: Buffer.from(json(value), 'utf8').toString('base64'), payloadType: 'InlineBase64',
+  // Fabric's polymorphic JSON reader requires sourceType before its other fields.
+  path, payload: Buffer.from(JSON.stringify(value), 'utf8').toString('base64'), payloadType: 'InlineBase64',
 });
 function guid(seed) {
   const bytes = createHash('sha256').update(`horizonte:${seed}`).digest().subarray(0, 16);

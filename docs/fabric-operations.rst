@@ -26,6 +26,12 @@ authentication or a dedicated service principal explicitly. Scripts obtain
 short-lived Fabric tokens in memory; they do not read environment files,
 token caches, or saved credentials.
 
+Lakehouses expose a companion SQL endpoint with the same display name.
+Recovery matches both the item type and the ownership marker, not names alone.
+Long-running operations use the documented ``x-ms-operation-id`` against the
+public Fabric operations endpoint; credentials are not forwarded to arbitrary
+hosts from a Location header.
+
 ::
 
    node scripts\fabric-provision.mjs
@@ -52,6 +58,13 @@ visible, active paid F2-or-greater or P1-or-greater capacity. It never purchases
 capacity, resumes capacity, changes tenant settings, assigns an existing
 unowned workspace, or modifies another demonstration. PP3 is not P3. The
 capacity list is permission-scoped; absence is not proof of tenant-wide absence.
+
+An operator can explicitly select an existing active FT1 trial with
+``--capacity CAPACITY_GUID --allow-trial`` for an authorized trial environment.
+This opt-in permits a provisioning attempt, not a claim that all workloads or
+Data Agent features are entitled on a trial. Service errors remain blockers.
+PPU and paused capacities remain excluded. This option never starts a trial,
+changes tenant policies, or changes the user's identity.
 
 Resource names are ``Horizonte Education``, ``HorizonteEducationLakehouse``,
 ``HorizonteEducationLoad``, ``EducationOntology``, and ``TeacherEducationAgent``.
@@ -90,9 +103,21 @@ invented. Nested arrays and objects are stored as JSON string properties.
 The explicit JSON definition selects the generation-1 native format documented
 by the current create API. Creating an ontology without a definition instead
 selects generation 2. Never apply generation-1 parts to a generation-2 item.
-The current generation-2 create example shows TMDL but does not establish the
-complete binding grammar. A generation-2 migration requires a validated native
-export and is not accomplished by renaming the generated parts.
+Generation-1 JSON preserves the required first-field ``sourceType`` discriminator
+for table bindings; alphabetically sorting those objects breaks native import.
+
+For generation 2, the separate generator uses the documented native TMDL format:
+
+::
+
+   node scripts\fabric-generate-v2.mjs --workspace GUID --lakehouse GUID --sql-endpoint HOST --sql-database CATALOG
+   node --test fabric\model-v2.test.mjs
+
+It emits ``fabric\generated-v2`` with backing tables, entity key properties,
+native relationships and DirectLake bindings. The SQL catalog must be the
+actual endpoint database, not a guessed identifier. Generation-1 and generation-2
+parts are not interchangeable; do not overwrite an item with another generation.
+Generated TMDL still requires native import and binding/query confirmation.
 
 Native integration acceptance gates
 ----------------------------------
@@ -118,6 +143,17 @@ Native integration acceptance gates
 5. Query the published MCP endpoint. Request the same teacher/class/lesson
    path and corroborate the returned IDs and source/query trace against step 3.
    MCP success without native source and traversal evidence is insufficient.
+
+Use short questions with explicit entity IDs when presenting a fixed synthetic
+snapshot. A query for a future date can legitimately return no rows after that
+date. Keep read-only intent distinct from an instruction not to answer in chat.
+Native MCP responses can embed bounded CSV query results alongside text; the
+adapter preserves supported textual data but discards resource URLs and UI
+metadata, and never fetches arbitrary resource links.
+
+If the Data Agent offers **Also publish to Microsoft 365 Copilot**, its personal
+publication is a native client path. It is not the same as installing a custom
+OAuth MCP capability in Cowork. See ``docs\native-copilot.rst`` for both paths.
 
 The public Data Agent datasource schema currently omits ``ontology`` although
 the portal's native ontology source is documented. This implementation does not
@@ -174,7 +210,8 @@ Official contracts
 ------------------
 
 * `Create ontology and generation selection <https://learn.microsoft.com/en-us/rest/api/fabric/ontology/items/create-ontology>`_
-* `Native entity and relationship definition <https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/ontology-definition>`_
+* `Generation-1 entity and relationship definition <https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/ontology-old-definition>`_
+* `Generation-2 TMDL definition <https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/ontology-definition>`_
 * `Lakehouse bindings and limitations <https://learn.microsoft.com/en-us/fabric/iq/ontology/how-to-bind-data>`_
 * `Graph initialization and refresh <https://learn.microsoft.com/en-us/fabric/graph/manage-data>`_
 * `Graph executeQuery beta <https://learn.microsoft.com/en-us/rest/api/fabric/graphmodel/items/execute-query%28beta%29>`_

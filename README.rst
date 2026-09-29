@@ -433,6 +433,13 @@ workspace/capacidade Fabric adequados, ontologia e Data Agent publicados,
 fontes governadas, conectividade e identidades com escopo correto.
 A disponibilidade de uma superfície Copilot não garante as demais.
 
+O acesso pode começar pela publicação pessoal nativa do Data Agent no
+Microsoft 365 Copilot, quando essa opção estiver disponível no Fabric.
+O plugin de skills/MCP no Cowork é uma configuração distinta: integra também
+os agentes especialistas Azure. Publicar o Data Agent no Chat não instala
+automaticamente esse conector no Cowork. Ambos preservam a experiência
+nativa; a diferença é o contrato de integração, não uma nova interface.
+
 .. list-table::
    :header-rows: 1
    :widths: 35 65

@@ -1,6 +1,17 @@
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const resourceKeys = new Set(['workspaceId', 'lakehouseId', 'notebookId', 'ontologyId', 'dataAgentId']);
 
+export function operationUrl(location, operationId) {
+  if (typeof operationId === 'string' && uuid.test(operationId)) {
+    return `https://api.fabric.microsoft.com/v1/operations/${operationId}`;
+  }
+  const url = new URL(location);
+  if (url.origin !== 'https://api.fabric.microsoft.com'
+    || !/^\/v1\/operations\/[0-9a-f-]{36}$/i.test(url.pathname)
+    || url.search || url.hash || url.username || url.password) throw new Error('UnsafeFabricOperation');
+  return url.href;
+}
+
 export function recoveryState(previous) {
   if (!previous || previous.provider !== 'fabric' || !previous.resources
     || !Array.isArray(previous.operations)) throw new Error('InvalidDeploymentState');
@@ -21,6 +32,8 @@ export function recoveryState(previous) {
     unresolved: operations.some(operation => !['Succeeded', 'Failed', 'Cancelled'].includes(operation.status)) };
 }
 
-export function eligibleCapacity(capacity) {
-  return capacity.state === 'Active' && /^(F([2-9]|[1-9][0-9]+)|P[1-9][0-9]*)$/.test(capacity.sku);
+export function eligibleCapacity(capacity, { allowTrial = false } = {}) {
+  return capacity.state === 'Active'
+    && (/^(F([2-9]|[1-9][0-9]+)|P[1-9][0-9]*)$/.test(capacity.sku)
+      || (allowTrial === true && capacity.sku === 'FT1'));
 }

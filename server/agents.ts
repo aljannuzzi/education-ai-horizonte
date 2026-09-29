@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createJsonModel, ModelError, type Credential } from './llm.js';
 import { executeSkill } from './semantic.js';
+import type { DataProvider } from './data-provider.js';
 
 export const agentInput = z.strictObject({
   agentId: z.enum(['teacher-support', 'writing-coach']).describe('Especialista de referência: triagem de suporte ou sugestões de escrita, nunca notas.'),
@@ -19,15 +20,23 @@ export interface EducationAgents {
 }
 
 export function createEducationAgents(env: NodeJS.ProcessEnv = process.env, options: {
-  fetch?: typeof fetch; credential?: Credential; timeoutMs?: number;
+  fetch?: typeof fetch; credential?: Credential; timeoutMs?: number; dataProvider?: DataProvider;
 } = {}): EducationAgents {
   return {
     async invoke(raw) {
       const input = agentInput.parse(raw);
       const agent = agentRegistry.find(item => item.agentId === input.agentId)!;
       // Authorization and evidence acquisition precede any credential or network access.
-      const context = executeSkill(agent.skillId, input.classId);
-      const ids = context.results.map(row => row.evidenceId);
+      const context = options.dataProvider
+        ? await options.dataProvider.executeSkill(agent.skillId, input.classId)
+        : executeSkill(agent.skillId, input.classId);
+      const native = options.dataProvider?.kind === 'fabric';
+      const records = native ? undefined : z.object({
+        results: z.array(z.object({ evidenceId: z.string().min(1) })),
+      }).parse(context);
+      // A native answer is cited as a query result, never as an invented source row.
+      const ids = native ? [`fabric-query:${agent.skillId}:${input.classId}`]
+        : records!.results.map(row => row.evidenceId);
       if (!ids.length) throw new ModelError(502, 'AGENT_NO_EVIDENCE', 'Não há evidência autorizada para o especialista.');
       const outputSchema = z.strictObject({
         summary: z.string().min(1).max(4_000),
@@ -60,7 +69,8 @@ Retorne somente JSON no esquema solicitado.`,
         agent: { ...agent, referenceOnly: true },
         response: parsed.data,
         context,
-        path: ['Copilot nativo', 'MCP', agent.skillId, 'ontologia sintética', agent.provider, agent.agentId],
+        evidenceReferenceKind: native ? 'native-query' : 'source-record',
+        path: ['Copilot nativo', 'MCP', agent.skillId, native ? 'Fabric Data Agent' : 'ontologia sintética', agent.provider, agent.agentId],
         readOnly: true, syntheticConnectors: true,
         limits: 'Texto AI qualitativo sujeito a revisão; fatos e números somente no contexto determinístico. Sem integração com agentes de clientes.',
       };

@@ -54,6 +54,36 @@ const code = (expected: string) => (error: unknown) => {
   return true;
 };
 
+test('native embedded CSV is preserved as data without resource URLs or UI metadata', async () => {
+  const h = harness({
+    async callTool() {
+      return { content: [
+        { type: 'text', text: 'A grounded answer.' },
+        { type: 'resource', resource: {
+          uri: `https://private.example/source?token=${token}`,
+          mimeType: 'text/csv', text: 'lesson_id,space_status\na-water,unavailable',
+          _meta: { token, outputTemplate: '<script>not executable</script>' },
+        } },
+      ] };
+    },
+  });
+  const result = await h.client.query('Question?');
+  assert.match(result.answer, /a-water,unavailable/);
+  assert.equal(result.content.length, 2);
+  assert.doesNotMatch(JSON.stringify(result), /private\.example|not executable|private-token-value/);
+});
+
+test('embedded HTML, remote-only links and oversized source payloads fail closed', async () => {
+  for (const resource of [
+    { uri: 'https://example.test/data', mimeType: 'text/html', text: '<script>bad()</script>' },
+    { uri: 'https://example.test/data', mimeType: 'text/csv' },
+    { uri: 'data:source', mimeType: 'text/csv', text: 'x'.repeat(64_001) },
+  ]) {
+    const h = harness({ async callTool() { return { content: [{ type: 'resource', resource }] }; } });
+    await assert.rejects(h.client.query('Question?'), code('INVALID_RESULT'));
+  }
+});
+
 test('configuration is explicit, strict, ID-only, and does not perform authentication', () => {
   for (const invalid of [
     undefined, {}, { ...config, workspaceId: '' }, { ...config, ontologyId: 'fake' },

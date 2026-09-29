@@ -1,8 +1,36 @@
 Conectar ao Copilot nativo
-=========================
+============================
 
 Este é o caminho principal da demonstração. A página Azure é técnica:
 o professor continua no Microsoft Copilot, não em uma interface substituta.
+
+Publicação nativa do Fabric no Microsoft 365 Copilot
+--------------------------------------------------------
+
+Nos ambientes que oferecem essa opção no Fabric, o Data Agent pode ser
+disponibilizado pessoalmente pelo fluxo nativo:
+
+1. No workspace, abra ``TeacherEducationAgent``.
+2. Em **Add an ontology**, selecione o item ``EducationOntology``. Confira
+   as entidades no Explorer; adicionar apenas o Lakehouse não equivale ao vínculo.
+3. Faça uma pergunta curta com identificadores explícitos, por exemplo:
+   “Consulte Lesson.id = a-water e Space.id = a-lab. Retorne o título e o status.”
+4. Selecione **Publish**, descreva finalidade e limites de somente leitura e,
+   quando disponível, habilite **Also publish to Microsoft 365 Copilot**.
+5. No Copilot, abra **Agents & Skills**, procure ``TeacherEducationAgent`` e
+   selecione **Open**. Use a mesma identidade autorizada nas fontes Fabric.
+6. Confirme uma resposta com fonte e dados reais da demonstração antes de usar
+   o agente em uma apresentação.
+
+Esse fluxo publica o agente pessoal, não abre os dados ao público nem autoriza
+compartilhamento com outras pessoas. Respeite os rótulos de sensibilidade
+atribuídos pelo tenant, inclusive quando o conteúdo original é sintético.
+
+**Agente no Chat e conector do Cowork são superfícies diferentes.** A opção
+de publicação no Microsoft 365 Copilot não comprova instalação de uma
+capacidade MCP no Cowork. Para orquestrar também os especialistas Azure a
+partir do Cowork, configure o plugin e o consentimento descritos a seguir.
+Não substitua essa conexão por tokens em prompts ou acesso anônimo.
 
 Pré-requisitos
 --------------
@@ -23,7 +51,7 @@ expiração, emissor, audiência, tenant, usuário permitido e escopo. ID tokens
 tokens app-only e a chave de diagnóstico não autorizam acesso.
 
 Registro no cofre Microsoft
---------------------------
+------------------------------
 
 No `Developer Portal <https://dev.teams.microsoft.com/tools>`_, abra
 **OAuth client registration** e crie um registro:
@@ -95,7 +123,7 @@ superfícies. Não substituir Autopilot por Cowork Automations nem por job Azure
 As skills orientam a execução; não criam agendas por si mesmas.
 
 Fontes oficiais consultadas
---------------------------
+------------------------------
 
 * `Desenvolvimento de plugins Cowork
   <https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/cowork-plugin-development>`_.

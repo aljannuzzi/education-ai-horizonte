@@ -3,7 +3,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { buildArtifacts } from '../fabric/model.mjs';
-import { recoveryState, eligibleCapacity } from '../fabric/provision-state.mjs';
+import { recoveryState, eligibleCapacity, operationUrl } from '../fabric/provision-state.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const api = 'https://api.fabric.microsoft.com/v1';
@@ -11,16 +11,18 @@ const marker = 'education-ai-horizonte synthetic-only managed deployment';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const args = process.argv.slice(2);
 const apply = args.includes('--apply');
+const allowTrial = args.includes('--allow-trial');
 let capacityId;
 let authMode = 'azure-cli';
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--apply') continue;
+  if (args[i] === '--apply' || args[i] === '--allow-trial') continue;
   if (args[i] === '--capacity' && uuid.test(args[i + 1] ?? '')) capacityId = args[++i];
   else if (args[i] === '--auth' && ['azure-cli', 'service-principal'].includes(args[i + 1])) authMode = args[++i];
-  else throw new Error('Usage: node scripts\\fabric-provision.mjs [--apply --capacity GUID] [--auth azure-cli|service-principal]');
+  else throw new Error('Usage: node scripts\\fabric-provision.mjs [--apply --capacity GUID] [--auth azure-cli|service-principal] [--allow-trial]');
 }
+if (allowTrial && !capacityId) throw new Error('TrialRequiresExplicitCapacitySelection');
 const evidence = {
-  checkedAt: new Date().toISOString(), provider: 'fabric', apply, authMode,
+  checkedAt: new Date().toISOString(), provider: 'fabric', apply, authMode, allowTrial,
   status: 'checking', resources: {}, operations: [], capacities: [],
   nativeOntology: 'unverified', nativeGraph: 'unverified', nativeDataAgent: 'unverified',
 };
@@ -65,6 +67,7 @@ async function request(path, method = 'GET', body) {
     throw new Error(evidence.failure.errorCode);
   }
   return { data, status: response.status, location: response.headers.get('location'),
+    operationId: response.headers.get('x-ms-operation-id'),
     retry: Math.max(1, Math.min(120, Number(response.headers.get('retry-after')) || 5)) * 1000 };
 }
 async function collection(path) {
@@ -81,8 +84,8 @@ async function collection(path) {
 async function mutation(path, body) {
   const response = await request(path, 'POST', body);
   if (response.status !== 202) return response.data;
-  if (!response.location) throw new Error('MissingOperationLocation');
-  const location = safeUrl(response.location).href;
+  if (!response.location && !response.operationId) throw new Error('MissingOperationLocation');
+  const location = operationUrl(response.location, response.operationId);
   evidence.operations.push({ location, status: 'pending' });
   await persist();
   const operation = evidence.operations.at(-1);
@@ -101,7 +104,7 @@ async function mutation(path, body) {
 }
 async function ensureItem(workspaceId, kind, displayName, body = {}) {
   const matches = (await collection(`/workspaces/${workspaceId}/items`))
-    .filter(item => item.displayName === displayName);
+    .filter(item => item.displayName === displayName && item.type === kind);
   if (matches.length > 1 || (matches[0] && (matches[0].description !== marker || matches[0].type !== kind))) {
     throw new Error('UnownedItemNameCollision');
   }
@@ -114,7 +117,7 @@ try {
   if (unresolved) throw new Error('UnresolvedOperationInspectBeforeRetry');
   const capacities = await collection('/capacities');
   evidence.capacities = capacities.map(({ id, sku, state, region }) => ({ id, sku, state, region }));
-  const eligible = capacities.filter(eligibleCapacity);
+  const eligible = capacities.filter(capacity => eligibleCapacity(capacity, { allowTrial }));
   const chosen = capacityId ? eligible.find(c => c.id.toLowerCase() === capacityId.toLowerCase()) : eligible.length === 1 ? eligible[0] : undefined;
   if (!chosen) throw new Error(capacityId ? 'SelectedCapacityNotEligibleOrNotVisible'
     : eligible.length ? 'ExplicitCapacitySelectionRequired' : 'NoEligibleFabricCapacityVisible');
