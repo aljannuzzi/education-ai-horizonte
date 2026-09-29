@@ -13,6 +13,9 @@ import { ModelError } from './llm.js';
 import { createEntraAuth, EntraAuthError, type EntraAuthOptions } from '../integrations/entra.js';
 import { createDataProvider, type DataProvider } from './data-provider.js';
 import { FabricError } from './fabric.js';
+import type { QuestionCostReceipt } from '../shared/cost-contracts.js';
+import { meteringEnabled, withCostMeter } from './cost-meter.js';
+import { loadCostPriceBook } from './cost-config.js';
 
 const executeInput = z.strictObject({
   skillId: z.enum(skills.map(skill => skill.id) as [string, ...string[]]).describe('ID de list_skills: suporte/diário, avaliação, biblioteca ou espaços.'),
@@ -31,6 +34,8 @@ export function createSemanticMcpServer(options: McpOptions = {}): McpServer {
     ...env, HORIZONTE_DATA_PROVIDER: env.HORIZONTE_DATA_PROVIDER ?? 'synthetic',
   });
   const agents = options.agents ?? createEducationAgents(env, { dataProvider: provider });
+  const costsEnabled = meteringEnabled(env);
+  const costPricing = loadCostPriceBook(env);
   const tools = new Map<string, { schema: z.ZodType; keys: string[]; run: (input: unknown) => CallToolResult | Promise<CallToolResult> }>();
   const content = (value: Record<string, unknown>): CallToolResult => ({
     content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value,
@@ -95,12 +100,29 @@ export function createSemanticMcpServer(options: McpOptions = {}): McpServer {
     }
     const parsed = tool.schema.safeParse(raw);
     if (!parsed.success) return toolError('Argumentos de ferramenta inválidos.');
+    let receipt: QuestionCostReceipt | undefined;
+    class ToolResultError extends Error {
+      constructor(readonly result: CallToolResult) { super('Tool returned an error result.'); }
+    }
+    const attachCost = (result: CallToolResult): CallToolResult => receipt
+      ? { ...result, _meta: { ...result._meta, 'horizonte/costReceipt': receipt } }
+      : result;
+    const run = async () => {
+      const result = await tool.run(parsed.data);
+      if (result.isError === true) throw new ToolResultError(result);
+      return result;
+    };
     try {
-      return await tool.run(parsed.data);
+      const result = costsEnabled ? await withCostMeter({
+        path: 'azure-mcp', scope: 'tool-call', env, pricing: costPricing,
+        onReceipt: value => { receipt = value; },
+      }, run) : await tool.run(parsed.data);
+      return attachCost(result);
     } catch (error) {
-      if (error instanceof ModelError) return toolError(`${error.code}: ${error.message}`);
-      if (error instanceof FabricError) return toolError(`FABRIC_${error.code}: consulta nativa indisponível; sem fallback sintético.`);
-      return toolError('Consulta indisponível ou turma não autorizada; nenhuma escrita realizada.');
+      if (error instanceof ToolResultError) return attachCost(error.result);
+      if (error instanceof ModelError) return attachCost(toolError(`${error.code}: ${error.message}`));
+      if (error instanceof FabricError) return attachCost(toolError(`FABRIC_${error.code}: consulta nativa indisponível; sem fallback sintético.`));
+      return attachCost(toolError('Consulta indisponível ou turma não autorizada; nenhuma escrita realizada.'));
     }
   });
   return server;

@@ -1,6 +1,8 @@
 import { DefaultAzureCredential } from '@azure/identity';
 import { z } from 'zod';
 import type { ChatRequest, Intent, ToolSpec } from '../shared/contracts.js';
+import type { ModelUsage } from '../shared/cost-contracts.js';
+import { recordModelUsage } from './cost-meter.js';
 import { assertClass, toolSpecSchema } from './semantic.js';
 
 export const MODEL_NAME = 'gpt-5.4-mini';
@@ -103,11 +105,38 @@ async function readResponse(response: Response): Promise<unknown> {
       if (bytes > 128 * 1024) throw failed();
       chunks.push(item.value);
     }
+
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } finally {
     await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
+}
+
+function providerUsage(value: unknown): Pick<ModelUsage, 'inputTokens' | 'outputTokens' | 'cachedInputTokens' | 'reasoningOutputTokens'> {
+  const object = (item: unknown): Record<string, unknown> =>
+    item !== null && typeof item === 'object' && !Array.isArray(item) ? item as Record<string, unknown> : {};
+  const count = (item: unknown): number | null =>
+    typeof item === 'number' && Number.isSafeInteger(item) && item >= 0 && item <= 1_000_000_000 ? item : null;
+  const subset = (item: unknown, parent: number | null): number | null => {
+    const detail = count(item);
+    return detail !== null && parent !== null && detail <= parent ? detail : null;
+  };
+  const usage = object(object(value).usage);
+  const inputTokens = count(usage.prompt_tokens);
+  const outputTokens = count(usage.completion_tokens);
+  return {
+    inputTokens, outputTokens,
+    cachedInputTokens: subset(object(usage.prompt_tokens_details).cached_tokens, inputTokens),
+    reasoningOutputTokens: subset(object(usage.completion_tokens_details).reasoning_tokens, outputTokens),
+  };
+}
+
+function providerModel(value: unknown): string {
+  const model = value !== null && typeof value === 'object' && 'model' in value ? value.model : undefined;
+  if (typeof model !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(model)) return 'unreported-model';
+  // Only this verified deployment version shares the default retail price row.
+  return model === 'gpt-5.4-mini-2026-03-17' ? MODEL_NAME : model;
 }
 
 export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
@@ -149,6 +178,11 @@ export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
     async complete(systemInstructions: string, input: unknown, schema: Record<string, unknown>): Promise<unknown> {
       const controller = new AbortController();
       let upstreamStatus: number | undefined;
+      let attemptStarted: number | undefined;
+      const usage: ModelUsage = {
+        model: 'unreported-model', outcome: 'failed', durationMs: 0, source: 'provider-usage',
+        inputTokens: null, outputTokens: null, cachedInputTokens: null, reasoningOutputTokens: null,
+      };
       let timer: ReturnType<typeof setTimeout> | undefined;
       const deadline = new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
@@ -159,34 +193,50 @@ export function createJsonModel(env: NodeJS.ProcessEnv = process.env, options: {
       const work = async () => {
         const token = await credential.getToken(MODEL_SCOPE, { abortSignal: controller.signal });
         if (!token?.token || controller.signal.aborted) throw failed();
-        const response = await send(url, {
+        const body = JSON.stringify({
+          model: MODEL_NAME,
+          messages: [
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: JSON.stringify(input) },
+          ],
+          max_completion_tokens: 4096,
+          response_format: { type: 'json_schema', json_schema: { name: 'teacher_route', strict: true, schema: azureOutputSchema(schema) } },
+        });
+        const init: RequestInit = {
           method: 'POST', redirect: 'error', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.token}` },
-          body: JSON.stringify({
-            model: MODEL_NAME,
-            messages: [
-              { role: 'system', content: systemInstructions },
-              { role: 'user', content: JSON.stringify(input) },
-            ],
-            max_completion_tokens: 4096,
-            response_format: { type: 'json_schema', json_schema: { name: 'teacher_route', strict: true, schema: azureOutputSchema(schema) } },
-          }),
-        });
-        if (!response.ok) {
-          upstreamStatus = response.status;
-          await response.body?.cancel().catch(() => undefined);
-          throw failed();
-        }
-        const envelope = responseSchema.parse(await readResponse(response));
+          body,
+        };
+        if (controller.signal.aborted) throw failed();
+        attemptStarted = performance.now();
+        const response = await send(url, init);
+        if (controller.signal.aborted) throw failed();
+        const requestId = ['x-request-id', 'apim-request-id']
+          .map(name => response.headers.get(name))
+          .find(value => value !== null && /^[A-Za-z0-9._-]{1,128}$/.test(value));
+        if (requestId) usage.requestId = requestId;
+        if (!response.ok) upstreamStatus = response.status;
+        const parsed = await readResponse(response);
+        if (controller.signal.aborted) throw failed();
+        usage.model = providerModel(parsed);
+        Object.assign(usage, providerUsage(parsed));
+        if (!response.ok) throw failed();
+        const envelope = responseSchema.parse(parsed);
         return JSON.parse(envelope.choices[0]!.message.content) as unknown;
       };
       try {
-        return await Promise.race([work(), deadline]);
+        const result = await Promise.race([work(), deadline]);
+        usage.outcome = 'succeeded';
+        return result;
       } catch {
         throw failed(upstreamStatus);
       } finally {
         clearTimeout(timer);
         controller.abort();
+        if (attemptStarted !== undefined) {
+          usage.durationMs = performance.now() - attemptStarted;
+          recordModelUsage(usage);
+        }
       }
     },
   };

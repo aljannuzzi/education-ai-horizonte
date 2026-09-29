@@ -22,6 +22,8 @@ param mcpEntraClientId string
 param mcpEntraAllowedOids string
 @description('Opt-in diagnostic harness only; not Microsoft Copilot Autopilot. Native Autopilot owns user schedules.')
 param deployDemoScheduler bool = false
+@description('Capture metadata-only consumption receipts; not authoritative billing records.')
+param enableCostMetering bool = false
 @description('Full ACR image URI with an explicit immutable release tag.')
 @minLength(1)
 param image string
@@ -108,6 +110,10 @@ resource app 'Microsoft.App/containerApps@2025-01-01' = {
           env: concat(modelStateEnv, [
             { name: 'PORT', value: '8080' }
             { name: 'TRUST_PROXY_HOPS', value: '1' }
+            { name: 'COST_METERING_ENABLED', value: string(enableCostMetering) }
+            { name: 'COST_LOG_RECEIPTS', value: string(enableCostMetering) }
+            { name: 'COST_CONTAINER_VCPU', value: '0.25' }
+            { name: 'COST_CONTAINER_MEMORY_GIB', value: '0.5' }
             { name: 'PUBLIC_ORIGIN', value: publicOrigin }
             { name: 'DEMO_ACCESS_KEY', secretRef: 'demo-access-key' }
             { name: 'MCP_ACCESS_KEY', secretRef: 'mcp-access-key' }

@@ -5,6 +5,8 @@ import test from 'node:test';
 import { DefaultAzureCredential } from '@azure/identity';
 import { z } from 'zod';
 import type { ChatRequest } from '../shared/contracts.js';
+import type { QuestionCostReceipt } from '../shared/cost-contracts.js';
+import { withCostMeter } from '../server/cost-meter.js';
 import { createApp } from '../server/app.js';
 import { createJsonModel, createReasoner, MODEL_NAME, MODEL_SCOPE, ModelError, routingSchema } from '../server/llm.js';
 import { classes, defaultToolSpec } from '../server/semantic.js';
@@ -29,6 +31,163 @@ function completion(value: unknown = route, finish_reason = 'stop') {
   });
 }
 const failed = (error: unknown) => error instanceof ModelError && error.status === 502 && error.code === 'MODEL_FAILED';
+
+const tokenUsage = {
+  prompt_tokens: 120, completion_tokens: 40,
+  prompt_tokens_details: { cached_tokens: 30 },
+  completion_tokens_details: { reasoning_tokens: 15 },
+};
+const nullTokens = { inputTokens: null, outputTokens: null, cachedInputTokens: null, reasoningOutputTokens: null };
+function metered(run: () => Promise<unknown>, receipts: QuestionCostReceipt[]) {
+  return withCostMeter({
+    path: 'azure-mcp', scope: 'question', env: { COST_METERING_ENABLED: 'true' },
+    onReceipt: receipt => { receipts.push(receipt); },
+  }, run);
+}
+function usageResponse(usage: unknown, content = JSON.stringify(route), choices?: unknown) {
+  return Response.json({
+    model: 'gpt-5.4-mini-2026-03-17', usage,
+    choices: choices ?? [{ finish_reason: 'stop', message: { role: 'assistant', content } }],
+  }, { headers: { 'x-request-id': 'request_1.test-2' } });
+}
+
+test('HTTP metering preserves exact provider usage and passthrough, including cache and reasoning subsets', async () => {
+  const receipts: QuestionCostReceipt[] = [];
+  const model = createJsonModel(env, { credential, fetch: async () => usageResponse(tokenUsage) });
+  assert.deepEqual(await metered(() => model.complete('Synthetic', {}, {}), receipts), route);
+  assert.equal(receipts.length, 1);
+  const calls = receipts[0]!.capture.modelCalls;
+  assert.equal(calls.length, 1);
+  assert.ok(Number.isFinite(calls[0]!.durationMs) && calls[0]!.durationMs >= 0);
+  assert.deepEqual(calls[0], {
+    model: MODEL_NAME, outcome: 'succeeded', source: 'provider-usage', durationMs: calls[0]!.durationMs,
+    inputTokens: 120, outputTokens: 40, cachedInputTokens: 30, reasoningOutputTokens: 15,
+    requestId: 'request_1.test-2',
+  });
+});
+
+test('usage is captured before choices validation and malformed nested JSON failures', async () => {
+  for (const response of [
+    () => usageResponse(tokenUsage, '{}', []),
+    () => usageResponse(tokenUsage, '{invalid'),
+  ]) {
+    const receipts: QuestionCostReceipt[] = [];
+    let sends = 0;
+    const model = createJsonModel(env, { credential, fetch: async () => { sends++; return response(); } });
+    await assert.rejects(metered(() => model.complete('Synthetic', {}, {}), receipts), failed);
+    assert.equal(sends, 1);
+    assert.equal(receipts.length, 1);
+    assert.equal(receipts[0]!.capture.modelCalls.length, 1);
+    assert.equal(receipts[0]!.capture.modelCalls[0]!.outcome, 'failed');
+    const { inputTokens, outputTokens, cachedInputTokens, reasoningOutputTokens } = receipts[0]!.capture.modelCalls[0]!;
+    assert.deepEqual({ inputTokens, outputTokens, cachedInputTokens, reasoningOutputTokens },
+      { inputTokens: 120, outputTokens: 40, cachedInputTokens: 30, reasoningOutputTokens: 15 });
+  }
+});
+
+test('missing and invalid provider counts remain null; details cannot exceed valid parents', async () => {
+  for (const [usage, expected] of [
+    [undefined, nullTokens], [null, nullTokens], [[], nullTokens],
+    [{ prompt_tokens: '12', completion_tokens: -1 }, nullTokens],
+    [{ prompt_tokens: 1.5, completion_tokens: 1_000_000_001 }, nullTokens],
+    [{ prompt_tokens: Number.MAX_SAFE_INTEGER + 1, completion_tokens: null,
+      prompt_tokens_details: { cached_tokens: 0 }, completion_tokens_details: { reasoning_tokens: 0 } }, nullTokens],
+    [{ ...tokenUsage, prompt_tokens_details: { cached_tokens: 121 }, completion_tokens_details: { reasoning_tokens: 41 } },
+      { ...nullTokens, inputTokens: 120, outputTokens: 40 }],
+    [{ ...tokenUsage, prompt_tokens_details: { cached_tokens: -1 }, completion_tokens_details: { reasoning_tokens: '2' } },
+      { ...nullTokens, inputTokens: 120, outputTokens: 40 }],
+    [{ prompt_tokens: 0, completion_tokens: 0, prompt_tokens_details: { cached_tokens: 0 },
+      completion_tokens_details: { reasoning_tokens: 0 } },
+      { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, reasoningOutputTokens: 0 }],
+  ] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    const model = createJsonModel(env, { credential, fetch: async () => usageResponse(usage) });
+    await metered(() => model.complete('Synthetic', {}, {}), receipts);
+    const { inputTokens, outputTokens, cachedInputTokens, reasoningOutputTokens } = receipts[0]!.capture.modelCalls[0]!;
+    assert.deepEqual({ inputTokens, outputTokens, cachedInputTokens, reasoningOutputTokens }, expected);
+  }
+});
+
+test('HTTP errors preserve available usage; absent usage remains unknown and request IDs are validated', async () => {
+  for (const [response, requestId, counts] of [
+    [() => Response.json({ usage: tokenUsage, error: 'PRIVATE_ERROR' }, { status: 429, headers: { 'x-request-id': 'unsafe/id', 'apim-request-id': 'safe-id' } }), 'safe-id',
+      { inputTokens: 120, outputTokens: 40, cachedInputTokens: 30, reasoningOutputTokens: 15 }],
+    [() => new Response(null, { status: 503, headers: { 'x-request-id': 'x'.repeat(129), 'apim-request-id': 'unsafe id' } }), undefined, nullTokens],
+    [() => { throw new Error('SECRET_NETWORK'); }, undefined, nullTokens],
+  ] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    let sends = 0;
+    const model = createJsonModel(env, { credential, fetch: () => { sends++; return Promise.resolve(response()); } });
+    await assert.rejects(metered(() => model.complete('Synthetic', {}, {}), receipts), failed);
+    assert.equal(sends, 1);
+    assert.equal(receipts.length, 1);
+    assert.equal(receipts[0]!.capture.modelCalls.length, 1);
+    const call = receipts[0]!.capture.modelCalls[0]!;
+    assert.deepEqual(call, { ...counts, model: 'unreported-model', source: 'provider-usage',
+      outcome: 'failed', durationMs: call.durationMs, ...(requestId ? { requestId } : {}) });
+    assert.doesNotMatch(JSON.stringify(receipts), /PRIVATE_ERROR|SECRET_NETWORK/);
+  }
+});
+
+test('pricing uses provider model identity, never the requested deployment assumption', async () => {
+  for (const provider of ['gpt-4.1-2025-04-14', 'gpt-5.4-mini-2099-01-01', undefined, 'invalid model value']) {
+    const receipts: QuestionCostReceipt[] = [];
+    const model = createJsonModel(env, { credential, fetch: async () => Response.json({
+      model: provider, usage: tokenUsage,
+      choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{}' } }],
+    }) });
+    await metered(() => model.complete('Synthetic', {}, {}), receipts);
+    const receipt = receipts[0]!;
+    assert.equal(receipt.capture.modelCalls[0]!.model,
+      provider === undefined || provider === 'invalid model value' ? 'unreported-model' : provider);
+    assert.equal(receipt.lines.find(line => line.component === 'azure-openai')!.amount, null);
+  }
+});
+
+test('token and body preparation failures record no HTTP calls', async () => {
+  let sends = 0;
+  for (const getToken of [async () => null, async () => ({ token: '' }),
+    async () => { throw new Error('SECRET_TOKEN'); }, credential.getToken]) {
+    const receipts: QuestionCostReceipt[] = [];
+    const model = createJsonModel(env, { credential: { getToken }, fetch: async () => { sends++; return completion(); } });
+    await assert.rejects(metered(() => model.complete('Synthetic', 1n, {}), receipts), failed);
+    assert.deepEqual(receipts[0]!.capture.modelCalls, []);
+  }
+  assert.equal(sends, 0);
+});
+
+test('late send and stream resolution after abort cannot mutate finalized usage or add calls', async () => {
+  for (const phase of ['send', 'stream'] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    let resolveSend!: (response: Response) => void;
+    let stream!: ReadableStreamDefaultController<Uint8Array>;
+    let signal: AbortSignal | null | undefined;
+    let sends = 0;
+    const model = createJsonModel(env, { credential, timeoutMs: 30, fetch: async (_url, init) => {
+      sends++;
+      signal = init?.signal;
+      return phase === 'send' ? new Promise<Response>(resolve => { resolveSend = resolve; })
+        : new Response(new ReadableStream<Uint8Array>({ start(controller) { stream = controller; } }));
+    } });
+    await assert.rejects(metered(() => model.complete('Synthetic', {}, {}), receipts), failed);
+    assert.equal(signal?.aborted, true);
+    assert.equal(sends, 1);
+    assert.equal(receipts.length, 1);
+    assert.equal(receipts[0]!.capture.modelCalls.length, 1);
+    const before = structuredClone(receipts);
+    if (phase === 'send') resolveSend(usageResponse(tokenUsage));
+    else {
+      stream.enqueue(new TextEncoder().encode(JSON.stringify({
+        usage: tokenUsage, choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{}' } }],
+      })));
+      stream.close();
+    }
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.deepEqual(receipts, before);
+    assert.equal(receipts[0]!.capture.modelCalls[0]!.inputTokens, null);
+    assert.equal(receipts[0]!.capture.modelCalls[0]!.outcome, 'failed');
+  }
+});
 
 test('model is explicitly unavailable without endpoint and invalid or partial configuration never falls back', async () => {
   const model = createReasoner({});

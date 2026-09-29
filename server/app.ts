@@ -15,6 +15,10 @@ import {
   scenarios, skills, systems, teacher, toolSpecSchema,
 } from './semantic.js';
 import { createStore, decideAction, editAction, StoreError, type StateStore } from './store.js';
+import { calculateCostReceipt, parseCapture } from '../shared/cost-engine.js';
+import type { QuestionCostReceipt } from '../shared/cost-contracts.js';
+import { loadCostPriceBook } from './cost-config.js';
+import { meteringEnabled, withCostMeter } from './cost-meter.js';
 
 export interface Reasoner {
   configured: boolean;
@@ -74,6 +78,8 @@ export function createApp(options: {
   const auth = createAuth(env);
   const store = options.store ?? createStore(env);
   const model = options.model ?? createReasoner(env);
+  const costsEnabled = meteringEnabled(env);
+  const costPricing = loadCostPriceBook(env);
   const csp = createContentSecurityPolicy();
   const app = express();
   app.disable('x-powered-by');
@@ -147,39 +153,89 @@ export function createApp(options: {
     };
     res.json(bootstrap);
   });
+  api.get('/costs/config', auth.requireSession, (_req, res) => {
+    res.json({
+      enabled: costsEnabled, pricing: costPricing,
+      nativeCoworkCapture: 'operator-observed',
+      notes: [
+        'O backend não intercepta o plugin Fabric IQ nativo do Cowork.',
+        '/cost informa créditos aproximados acumulados por tarefa, não uma fatura por pergunta.',
+        'Recibos não incluem o conteúdo da pergunta ou da resposta.',
+      ],
+    });
+  });
+  api.post('/costs/estimate', ...privateMutation, (req, res) => {
+    const body = z.strictObject({ capture: z.unknown() }).parse(req.body);
+    const capture = parseCapture(body.capture);
+    // Operator-submitted quantities are not attested by backend metering.
+    res.json(calculateCostReceipt({ ...capture, origin: 'operator-entered' }, costPricing));
+  });
+  api.post('/costs/probe', ...privateMutation, rateLimit({
+    windowMs: 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false,
+    message: { error: { code: 'COST_PROBE_LIMIT', message: 'Aguarde antes de repetir a medição de inferência.' } },
+  }), async (req, res) => {
+    emptyBody.parse(req.body);
+    if (!costsEnabled || !model.configured) {
+      throw new HttpError(503, 'COST_PROBE_UNAVAILABLE', 'A medição e o modelo devem estar configurados.');
+    }
+    await withCostMeter({
+      path: 'azure-mcp', scope: 'question', env, pricing: costPricing,
+      onReceipt: receipt => {
+        res.locals.costReceipt = receipt;
+        res.set('X-Question-Id', receipt.questionId);
+      },
+    }, async () => {
+      await model.route({
+        message: 'Verifique as pendências do diário da turma sintética 7A, somente leitura.',
+        classId: 'class-7a', mode: 'cowork',
+      });
+    });
+    res.json({ diagnosticOnly: true, costReceipt: res.locals.costReceipt });
+  });
   api.post('/chat', ...privateMutation, async (req, res) => {
     const input = chatBody.parse(req.body);
     assertClass(input.classId);
-    let workspace: Workspace;
-    if (input.guided === true) {
-      const intent = inferIntent(input.message);
-      workspace = buildWorkspace({
-        classId: input.classId, mode: input.mode, intent, model: 'guided',
-        ...(intent === 'tool' ? { toolSpec: defaultToolSpec(input.message) } : {}),
-      });
-    } else {
-      if (!model.configured) {
-        throw new HttpError(503, 'MODEL_NOT_CONFIGURED', 'Modelo não configurado. Selecione explicitamente o modo guiado.');
-      }
-      try {
-        const routed = routeResult.parse(await model.route(input));
+    const run = async () => {
+      let workspace: Workspace;
+      if (input.guided === true) {
+        const intent = inferIntent(input.message);
         workspace = buildWorkspace({
-          classId: input.classId, mode: input.mode, model: 'azure-openai', ...routed,
+          classId: input.classId, mode: input.mode, intent, model: 'guided',
+          ...(intent === 'tool' ? { toolSpec: defaultToolSpec(input.message) } : {}),
         });
-        workspace.modelNotice = `Intenção roteada por chamada real ao Azure OpenAI (${MODEL_NAME}; implantação configurada). Evidências, métricas e propostas vêm da travessia semântica determinística de dados sintéticos. Nenhum destino externo foi alterado.`;
-      } catch {
-        throw new HttpError(502, 'MODEL_FAILED', 'Falha no roteamento do modelo. Nenhum rascunho foi salvo; tente novamente ou selecione o modo guiado.');
+      } else {
+        if (!model.configured) {
+          throw new HttpError(503, 'MODEL_NOT_CONFIGURED', 'Modelo não configurado. Selecione explicitamente o modo guiado.');
+        }
+        try {
+          const routed = routeResult.parse(await model.route(input));
+          workspace = buildWorkspace({
+            classId: input.classId, mode: input.mode, model: 'azure-openai', ...routed,
+          });
+          workspace.modelNotice = `Intenção roteada por chamada real ao Azure OpenAI (${MODEL_NAME}; implantação configurada). Evidências, métricas e propostas vêm da travessia semântica determinística de dados sintéticos. Nenhum destino externo foi alterado.`;
+        } catch {
+          throw new HttpError(502, 'MODEL_FAILED', 'Falha no roteamento do modelo. Nenhum rascunho foi salvo; tente novamente ou selecione o modo guiado.');
+        }
       }
-    }
-    await store.mutate(state => {
-      state.actions.push(...workspace.actions);
-      state.audit.push({
-        id: randomUUID(), at: new Date().toISOString(), actor: teacher.id,
-        type: 'workspace.created',
-        detail: `Espaço ${workspace.intent}; turma ${input.classId}; modo ${workspace.model}. Somente propostas simuladas.`,
+      await store.mutate(state => {
+        state.actions.push(...workspace.actions);
+        state.audit.push({
+          id: randomUUID(), at: new Date().toISOString(), actor: teacher.id,
+          type: 'workspace.created',
+          detail: `Espaço ${workspace.intent}; turma ${input.classId}; modo ${workspace.model}. Somente propostas simuladas.`,
+        });
       });
-    });
-    res.json(workspace);
+      return workspace;
+    };
+    const workspace = costsEnabled ? await withCostMeter({
+      path: 'azure-mcp', scope: 'question', env, pricing: costPricing,
+      onReceipt: receipt => {
+        res.locals.costReceipt = receipt;
+        res.set('X-Question-Id', receipt.questionId);
+      },
+    }, run) : await run();
+    const receipt: QuestionCostReceipt | undefined = res.locals.costReceipt;
+    res.json(receipt ? { ...workspace, costReceipt: receipt } : workspace);
   });
   api.get('/actions', auth.requireSession, async (_req, res) => {
     res.json({ actions: (await store.read()).actions });
@@ -239,12 +295,14 @@ export function createApp(options: {
   });
   const errors: ErrorRequestHandler = (error: unknown, _req, res, next) => {
     if (res.headersSent) return next(error);
+    const receipt: QuestionCostReceipt | undefined = res.locals.costReceipt;
+    const costDetails = receipt ? { costReceipt: receipt } : {};
     if (error instanceof HttpError) {
-      res.status(error.status).json({ error: { code: error.code, message: error.message } });
+      res.status(error.status).json({ error: { code: error.code, message: error.message }, ...costDetails });
       return;
     }
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: { code: 'INVALID_BODY', message: 'Corpo inválido ou campos não permitidos.' } });
+      res.status(400).json({ error: { code: 'INVALID_BODY', message: 'Corpo inválido ou campos não permitidos.' }, ...costDetails });
       return;
     }
     const detail = error !== null && typeof error === 'object'
@@ -254,7 +312,7 @@ export function createApp(options: {
       return;
     }
     if (error instanceof StoreError) {
-      res.status(error.status).json({ error: { code: error.code, message: 'Não foi possível concluir a operação. Atualize os dados e tente novamente.' } });
+      res.status(error.status).json({ error: { code: error.code, message: 'Não foi possível concluir a operação. Atualize os dados e tente novamente.' }, ...costDetails });
       return;
     }
     const status = detail.type === 'entity.too.large' ? 413
@@ -265,7 +323,7 @@ export function createApp(options: {
       code: status === 413 ? 'BODY_TOO_LARGE' : status === 415 ? 'JSON_REQUIRED'
         : status === 400 ? 'INVALID_BODY' : status === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR',
       message: status === 500 ? 'Não foi possível concluir a operação.' : 'Requisição inválida ou recurso indisponível.',
-    } });
+    }, ...costDetails });
   };
   app.use(errors);
   return app;

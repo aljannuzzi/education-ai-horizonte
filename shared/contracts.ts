@@ -1,3 +1,5 @@
+import type { QuestionCostReceipt } from './cost-contracts.js';
+
 export type Mode = 'home' | 'cowork' | 'code' | 'autopilot';
 export type Intent = 'brief' | 'lesson' | 'diary' | 'learning' | 'writing' | 'metrics' | 'tool';
 
@@ -108,6 +110,7 @@ export interface ActionDraft {
 }
 
 export interface Workspace {
+  costReceipt?: QuestionCostReceipt;
   id: string;
   title: string;
   summary: string;

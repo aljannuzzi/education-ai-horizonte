@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { withCostMeter } from '../server/cost-meter.js';
+import type { QuestionCostReceipt } from '../shared/cost-contracts.js';
 import {
   createFabricClient, FABRIC_SCOPE, FabricError, FABRIC_MAX_QUESTION_LENGTH,
   type FabricConfig, type FabricDependencies, type FabricSession, type FabricTool,
@@ -53,6 +55,95 @@ const code = (expected: string) => (error: unknown) => {
   assert.equal(error.cause, undefined);
   return true;
 };
+
+function metered(run: () => Promise<unknown>, receipts: QuestionCostReceipt[]) {
+  return withCostMeter({
+    env: { COST_METERING_ENABLED: 'true' }, path: 'azure-mcp', scope: 'tool-call',
+    onReceipt: receipt => { receipts.push(receipt); },
+  }, run);
+}
+
+function assertFabricReceipt(receipts: QuestionCostReceipt[], operations: number, outcome: 'succeeded' | 'failed') {
+  assert.equal(receipts.length, 1);
+  const capture = receipts[0]!.capture;
+  assert.equal(capture.path, 'azure-mcp');
+  assert.equal(capture.scope, 'tool-call');
+  assert.equal(capture.outcome, outcome);
+  assert.equal(capture.fabric.operations, operations);
+  assert.equal(capture.fabric.cuSeconds, null);
+  assert.equal(capture.fabric.source, 'unavailable');
+}
+
+test('Fabric receipts count successful tool calls without deriving CU from duration', async () => {
+  const receipts: QuestionCostReceipt[] = [];
+  const h = harness();
+  await metered(() => h.client.query('Question?'), receipts);
+  assert.equal(h.calls.filter(call => call === 'call').length, 1);
+  assertFabricReceipt(receipts, 1, 'succeeded');
+});
+
+test('Fabric receipts count thrown and isError tool failures once', async () => {
+  for (const [callTool, expected] of [
+    [async () => { throw new Error(token); }, 'MCP_ERROR'],
+    [async () => ({ isError: true, content: [{ type: 'text', text: token }] }), 'TOOL_ERROR'],
+  ] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    let calls = 0;
+    const h = harness({ async callTool() { calls++; return callTool(); } });
+    await assert.rejects(metered(() => h.client.query('Question?'), receipts), code(expected));
+    assert.equal(calls, 1);
+    assertFabricReceipt(receipts, 1, 'failed');
+  }
+});
+
+test('Fabric receipts do not count auth or schema failures or pre-aborted requests', async () => {
+  for (const phase of ['auth', 'schema', 'abort'] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    const h = harness(phase === 'schema' ? {
+      async listTools() { return { tools: [{ ...tool, inputSchema: { type: 'string' } }] }; },
+    } : {});
+    const client = phase === 'auth' ? createFabricClient(config, {
+      ...h.deps, tokenProvider: async () => { throw new Error(token); },
+    }) : h.client;
+    await assert.rejects(metered(() => client.query('Question?', phase === 'abort'
+      ? { signal: AbortSignal.abort() } : {}), receipts),
+    code(phase === 'auth' ? 'AUTH_FAILED' : phase === 'schema' ? 'TOOL_UNSUPPORTED' : 'CANCELLED'));
+    assert.ok(!h.calls.includes('call'));
+    assertFabricReceipt(receipts, 0, 'failed');
+  }
+});
+
+test('Fabric receipts count timed-out tool calls once', async () => {
+  const receipts: QuestionCostReceipt[] = [];
+  let calls = 0;
+  const h = harness({ async callTool() { calls++; return new Promise<never>(() => {}); } },
+    { ...config, timeoutMs: 20 });
+  await assert.rejects(metered(() => h.client.query('Question?'), receipts), code('TIMEOUT'));
+  assert.equal(calls, 1);
+  assertFabricReceipt(receipts, 1, 'failed');
+});
+
+test('late token and discovery completion after timeout cannot count a Fabric operation', async () => {
+  for (const phase of ['token', 'discovery'] as const) {
+    const receipts: QuestionCostReceipt[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const settings = { ...config, timeoutMs: 20 };
+    const h = harness(phase === 'discovery' ? {
+      async listTools() { await gate; return { tools: [tool] }; },
+    } : {}, settings);
+    const client = phase === 'token' ? createFabricClient(settings, {
+      ...h.deps, tokenProvider: async () => { await gate; return token; },
+    }) : h.client;
+    await assert.rejects(metered(() => client.query('Question?'), receipts), code('TIMEOUT'));
+    assertFabricReceipt(receipts, 0, 'failed');
+    const before = structuredClone(receipts);
+    release();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.ok(!h.calls.includes('call'));
+    assert.deepEqual(receipts, before);
+  }
+});
 
 test('native embedded CSV is preserved as data without resource URLs or UI metadata', async () => {
   const h = harness({

@@ -12,6 +12,7 @@ import { createAuth } from '../server/auth.js';
 import { agentRegistry, createEducationAgents, type EducationAgents } from '../server/agents.js';
 import { mountMcp } from '../server/mcp.js';
 import { classes, executeSkill, skills } from '../server/semantic.js';
+import { recordModelUsage } from '../server/cost-meter.js';
 
 const MCP_KEY = 'mcp-test-only-separate-key';
 const DEMO_KEY = 'browser-test-only-key';
@@ -25,6 +26,38 @@ const call = (args: unknown, name = 'execute_skill') => ({
 });
 const valid = { skillId: skills[0]!.id, classId: classes[0]!.id };
 const toolNames = ['execute_skill', 'describe_ontology', 'list_classes', 'list_skills', 'invoke_education_agent'];
+
+test('opt-in MCP receipts use tool-call scope and preserve successful and failed operation usage', async t => {
+  const h = await harness(t, { COST_METERING_ENABLED: 'true' });
+  const success = (await rpc(await h.send(call({}, 'list_skills')))).result;
+  const receipt = success._meta['horizonte/costReceipt'];
+  assert.equal(receipt.capture.scope, 'tool-call');
+  assert.equal(receipt.capture.outcome, 'succeeded');
+  assert.equal(receipt.billingRecord, false);
+  assert.doesNotMatch(JSON.stringify(receipt), /mcp-test-only|browser-test-only|teacher-marina/);
+  const failure = (await rpc(await h.send(call({
+    agentId: 'teacher-support', classId: valid.classId, request: 'PRIVATE_REQUEST',
+  }, 'invoke_education_agent')))).result;
+  assert.equal(failure.isError, true);
+  assert.equal(failure._meta['horizonte/costReceipt'].capture.outcome, 'failed');
+  assert.doesNotMatch(JSON.stringify(failure._meta), /PRIVATE_REQUEST/);
+
+  const agents: EducationAgents = { async invoke() {
+    recordModelUsage({
+      model: 'gpt-5.4-mini', source: 'provider-usage', outcome: 'failed', durationMs: 1,
+      inputTokens: 1000, cachedInputTokens: 200, outputTokens: 400, reasoningOutputTokens: 25,
+    });
+    throw new Error('PRIVATE_PROVIDER_ERROR');
+  } };
+  const billed = await harness(t, { COST_METERING_ENABLED: 'true' }, agents);
+  const result = (await rpc(await billed.send(call({
+    agentId: 'teacher-support', classId: valid.classId, request: 'PRIVATE_REQUEST',
+  }, 'invoke_education_agent')))).result;
+  assert.equal(result.isError, true);
+  assert.equal(result._meta['horizonte/costReceipt'].capture.modelCalls[0].inputTokens, 1000);
+  assert.ok(result._meta['horizonte/costReceipt'].totals.knownSubtotal > 0);
+  assert.doesNotMatch(JSON.stringify(result), /PRIVATE_PROVIDER_ERROR|PRIVATE_REQUEST/);
+});
 
 async function harness(t: TestContext, overrides: NodeJS.ProcessEnv = {}, agents?: EducationAgents) {
   const env = { NODE_ENV: 'test', DEMO_ACCESS_KEY: DEMO_KEY, MCP_ACCESS_KEY: MCP_KEY, ...overrides };

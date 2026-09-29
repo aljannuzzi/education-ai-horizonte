@@ -443,6 +443,30 @@ metadados operacionais necessários — não o conteúdo integral de estudantes.
 Falha de fonte, falta de permissão e recusa de execução devem ser distinguíveis.
 Não há benefício em responder rápido com evidências erradas.
 
+Custo e consumo por pergunta
+---------------------------
+
+A demo inclui um **comprovante por pergunta** com origem das métricas,
+metodologia e cobertura. Ele separa **Azure próprio**, **capacidade Fabric**,
+**créditos do Cowork** e **infraestrutura compartilhada**. Valor desconhecido
+não vira zero, e estimativa não é apresentada como fatura.
+
+No caminho nativo de relatório, use ``/cost`` para observar o consumo aproximado
+da **tarefa**; uma tarefa nova por pergunta facilita atribuição. O servidor Azure
+da demo não intercepta essas chamadas. Fabric requer CU(s) das operações para
+um rateio verificável. Modelo, contexto, esforço, ferramentas e iterações
+impactam créditos; não há preço fixo universal por pergunta.
+
+Nas chamadas ao backend instrumentado, o comprovante captura os tokens
+informados pelo Azure OpenAI, inclusive cache e raciocínio, sem duplicar
+tokens de saída. Falhas e medições ausentes permanecem explícitas.
+O painel técnico ``/costs`` permite informar/importar métricas, ajustar tarifas
+e exportar o comprovante. Ele não substitui a experiência docente no Copilot.
+
+Veja `custo por pergunta: fontes, fórmulas e limitações
+<docs/cost-per-question.rst>`_. O subtotal conhecido, os custos rateados e a
+conciliação oficial são apresentados separadamente.
+
 Impacto
 -------
 
@@ -506,6 +530,8 @@ nativa; a diferença é o contrato de integração, não uma nova interface.
      - `Cenários <docs/scenarios.rst>`_
    * - Medidores e dimensionamento
      - `Custos <docs/costs.rst>`_
+   * - Custo por pergunta e créditos do Cowork
+     - `Medição, comprovantes e rateio <docs/cost-per-question.rst>`_
    * - Contratos e governança para dados reais
      - `Produção <docs/production.rst>`_
 

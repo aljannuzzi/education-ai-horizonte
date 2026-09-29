@@ -1,4 +1,5 @@
 import { AzureCliCredential } from '@azure/identity';
+import { recordFabricOperation } from './cost-meter.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
@@ -323,6 +324,7 @@ export function createFabricClient(config: FabricConfig, deps: FabricDependencie
         if (candidates.length !== 1) throw new FabricError('TOOL_UNSUPPORTED');
         const selected = candidates[0]!;
         controller.signal.throwIfAborted();
+        recordFabricOperation();
         const result = await session.callTool(selected.tool.name, { [selected.property]: question }, controller.signal);
         controller.signal.throwIfAborted();
         return { ...metadata(), tool: { name: selected.tool.name, inputProperty: selected.property }, ...cleanResult(result, token) };

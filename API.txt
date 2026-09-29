@@ -40,6 +40,21 @@ POST /api/autopilot/run {} -> AutopilotState
   If explicitly deployed, runs independent of browser with opt-in rules;
   never Microsoft Autopilot. False does not remove/disable existing resources.
 GET /api/audit -> {events:AuditEvent[]}
+GET /api/costs/config -> {enabled,pricing,nativeCoworkCapture,notes}; session required.
+POST /api/costs/estimate {capture:QuestionCostCapture} -> QuestionCostReceipt.
+  Session + CSRF required. Server rates apply; input is operator-entered,
+  not attested measurement. No question text, model output or credentials accepted.
+POST /api/costs/probe {} -> {diagnosticOnly:true,costReceipt:QuestionCostReceipt}.
+  Session + CSRF, 5/min rate limit; requires metering+live model enabled.
+  Runs one fixed synthetic inference, incurs its normal model usage, saves no
+  school drafts, and returns provider usage. Not a native Cowork interception.
+GET /costs -> local-browser technical calculator plus optional authenticated probe.
+  Manual/imported cost metadata remains in browser memory until explicit export.
+  Only the explicit live probe authenticates, calls the backend and emits usage logs.
+When COST_METERING_ENABLED=true:
+  /api/chat includes costReceipt and X-Question-Id, including metered failures.
+  MCP tools/call includes _meta["horizonte/costReceipt"], scope tool-call.
+  One tool call is NOT necessarily one whole Cowork question.
 POST /mcp -> MCP Streamable HTTP, Entra OAuth delegated bearer, read-only tools.
   No unauthenticated discovery of school dataset; no approval tools.
   Backend tools (discover authoritative schemas with tools/list):
@@ -97,6 +112,13 @@ AZURE_CLIENT_ID=<user assigned managed identity client id>
 STATE_PATH=.runtime/state.json (local only)
 AUTOPILOT_SCHEDULE=06:30 em dias uteis (America/Sao_Paulo) [legacy diagnostic only]
 Production model must use DefaultAzureCredential, not API keys.
+COST_METERING_ENABLED=true|false (default false)
+COST_LOG_RECEIPTS=true|false (metadata-only structured operational logs)
+COST_CONTAINER_VCPU=<actual replica allocation, optional>
+COST_CONTAINER_MEMORY_GIB=<actual replica allocation, optional>
+COST_PRICEBOOK_JSON=<validated optional rates; currency/date/source required>
+Native Cowork uses /cost as approximate task aggregate. Fabric CU(s) require
+authorized metrics/events; unknown is null, not zero. No authoritative invoice.
 Azure Blob optimistic concurrency via ETags; local serialized/atomic persistence.
 Optional diagnostic scheduler entrypoint: node dist/server/job.js. Exit nonzero on failure.
 MCP stdio entrypoint: node dist/server/mcp-stdio.js.

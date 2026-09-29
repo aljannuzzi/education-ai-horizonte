@@ -10,6 +10,9 @@ import { createApp, type Reasoner } from '../server/app.js';
 import { classes } from '../server/semantic.js';
 import { createMemoryStore, type StateStore } from '../server/store.js';
 import type { SessionInfo, Workspace } from '../shared/contracts.js';
+import { createEmptyCapture } from '../shared/cost-engine.js';
+import { recordModelUsage } from '../server/cost-meter.js';
+import type { ModelUsage, QuestionCostReceipt } from '../shared/cost-contracts.js';
 
 const ACCESS_KEY = 'http-test-only-access-key-not-a-real-credential';
 const MCP_KEY = 'http-test-only-separate-mcp-key-not-a-real-credential';
@@ -19,6 +22,103 @@ const noModel: Reasoner = {
 };
 const classroom = classes[0]!.id;
 const chat = { message: 'Prepare uma aula sobre água', classId: classroom, mode: 'home', guided: true };
+const costUsage: ModelUsage = {
+  model: 'gpt-5.4-mini', source: 'provider-usage', outcome: 'succeeded', durationMs: 10,
+  inputTokens: 1000, cachedInputTokens: 200, outputTokens: 400, reasoningOutputTokens: 25,
+};
+
+test('cost endpoints require authentication and CSRF and never attest operator captures', async t => {
+  const h = await harness(t, { env: { COST_METERING_ENABLED: 'true' } });
+  assert.equal((await h.send('/api/costs/config')).status, 401);
+  for (const path of ['/api/costs/estimate', '/api/costs/probe']) {
+    assert.equal((await h.send(path, 'POST', {})).status, 401);
+  }
+  await h.login();
+  const capture = createEmptyCapture('cowork-fabric-iq', 'operator-question');
+  capture.origin = 'application-metered';
+  assert.equal((await h.send('/api/costs/estimate', 'POST', { capture }, { 'x-csrf-token': null })).status, 403);
+  assert.equal((await h.send('/api/costs/probe', 'POST', {}, { origin: 'https://example.invalid' })).status, 403);
+  const response = await h.send('/api/costs/estimate', 'POST', { capture });
+  assert.equal(response.status, 200);
+  const receipt = await response.json() as QuestionCostReceipt;
+  assert.equal(receipt.capture.origin, 'operator-entered');
+  assert.equal(receipt.billingRecord, false);
+  assert.equal(receipt.totals.knownSubtotal, null);
+  assert.equal((await h.send('/api/costs/estimate', 'POST', { capture: { ...capture, prompt: 'private input' } })).status, 400);
+  assert.equal((await h.send('/api/costs/estimate', 'POST', { capture, pricing: {} })).status, 400);
+  assert.equal((await (await h.send('/api/costs/config')).json()).enabled, true);
+});
+
+test('chat attaches metered quantities without prompt content and includes header correlation', async t => {
+  const h = await harness(t, {
+    env: { COST_METERING_ENABLED: 'true' },
+    model: { configured: true, async route() {
+      recordModelUsage(costUsage);
+      return { intent: 'lesson', plan: 'PRIVATE_MODEL_PLAN' };
+    } },
+  });
+  await h.login();
+  const response = await h.send('/api/chat', 'POST', { ...chat, guided: false, message: 'PRIVATE_QUESTION' });
+  assert.equal(response.status, 200, await response.clone().text());
+  const { costReceipt: receipt } = await response.json() as Workspace;
+  assert.ok(receipt);
+  assert.equal(response.headers.get('x-question-id'), receipt.questionId);
+  assert.equal(receipt.capture.scope, 'question');
+  assert.equal(receipt.capture.outcome, 'succeeded');
+  assert.deepEqual(receipt.capture.modelCalls, [costUsage]);
+  assert.ok(Math.abs(receipt.totals.knownSubtotal! - 0.002415) < 1e-12);
+  assert.doesNotMatch(JSON.stringify(receipt), /PRIVATE_|http-test-only|csrfToken/);
+});
+
+test('model and persistence failures retain measured consumption without disclosing error detail', async t => {
+  for (const failure of ['model', 'store']) {
+    const store = createMemoryStore();
+    if (failure === 'store') store.mutate = async () => { throw new Error('PRIVATE_STORE_FAILURE'); };
+    const h = await harness(t, {
+      store, env: { COST_METERING_ENABLED: 'true' },
+      model: { configured: true, async route() {
+        recordModelUsage({ ...costUsage, outcome: failure === 'model' ? 'failed' : 'succeeded' });
+        if (failure === 'model') throw new Error('PRIVATE_MODEL_FAILURE');
+        return { intent: 'lesson', plan: 'private plan' };
+      } },
+    });
+    await h.login();
+    const response = await h.send('/api/chat', 'POST', { ...chat, guided: false });
+    assert.equal(response.status, failure === 'model' ? 502 : 500);
+    const body = await response.json();
+    assert.equal(body.costReceipt.capture.outcome, 'failed');
+    assert.equal(body.costReceipt.capture.modelCalls[0].inputTokens, 1000);
+    assert.ok(body.costReceipt.totals.knownSubtotal > 0);
+    assert.doesNotMatch(JSON.stringify(body), /PRIVATE_/);
+  }
+});
+
+test('cost probe is opt-in, fixed-input, bounded and independent of school persistence', async t => {
+  let calls = 0;
+  const store = createMemoryStore();
+  store.mutate = async () => { throw new Error('probe must not persist drafts'); };
+  const model: Reasoner = { configured: true, async route(input) {
+    calls++;
+    assert.equal(input.classId, 'class-7a');
+    assert.match(input.message, /sintética/);
+    recordModelUsage(costUsage);
+    return { intent: 'diary', plan: 'not returned' };
+  } };
+  const disabled = await harness(t, { model, store });
+  await disabled.login();
+  assert.equal((await disabled.send('/api/costs/probe', 'POST', {})).status, 503);
+  assert.equal(calls, 0);
+  const h = await harness(t, { model, store, env: { COST_METERING_ENABLED: 'true' } });
+  await h.login();
+  assert.equal((await h.send('/api/costs/probe', 'POST', { prompt: 'not accepted' })).status, 400);
+  const response = await h.send('/api/costs/probe', 'POST', {});
+  assert.equal(response.status, 200, await response.clone().text());
+  const body = await response.json();
+  assert.deepEqual(Object.keys(body).sort(), ['costReceipt', 'diagnosticOnly']);
+  assert.equal(body.diagnosticOnly, true);
+  assert.equal(body.costReceipt.capture.modelCalls.length, 1);
+  assert.equal(calls, 1);
+});
 
 async function harness(t: TestContext, options: {
   model?: Reasoner; env?: NodeJS.ProcessEnv; store?: StateStore;

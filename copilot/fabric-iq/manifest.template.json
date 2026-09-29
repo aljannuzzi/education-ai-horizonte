@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.28/MicrosoftTeams.schema.json",
   "manifestVersion": "1.28",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "id": "d64d2e93-e3d4-47fa-95a9-2371309b4e68",
   "developer": {
     "name": "Horizonte Education Demo",
@@ -15,7 +15,7 @@
   },
   "description": {
     "short": "Apoio docente no Cowork com a capacidade Fabric IQ existente, sem novo conector.",
-    "full": "Skill de apoio docente para a Escola Horizonte: preparar aulas, plano B para laboratório indisponível, materiais, recomposição e apoio ao diário. O Cowork consulta o relatório Horizonte Professor pela capacidade Fabric IQ já disponível e separa fatos de propostas para revisão do professor. Pacote somente de skill: não adiciona conectores, OAuth, Data Agent ou acesso direto à ontologia; não inclui dados escolares nem altera registros oficiais. A disponibilidade depende das capacidades e permissões existentes no ambiente."
+    "full": "Skill de apoio docente para a Escola Horizonte: preparar aulas, plano B para laboratório indisponível, materiais, recomposição e apoio ao diário. O Cowork consulta o relatório Horizonte Professor pela capacidade Fabric IQ disponível e separa fatos de propostas para revisão. Inclui um quadro de consumo por pergunta: distingue créditos aproximados do Cowork, capacidade Fabric e serviços Azure efetivamente usados, sem inventar valores. Pacote somente de skill: não adiciona conectores, OAuth ou consulta direta à ontologia; não inclui dados escolares nem altera registros. A disponibilidade depende das capacidades e permissões existentes."
   },
   "icons": { "color": "color.png", "outline": "outline.png" },
   "accentColor": "#b11f4b",

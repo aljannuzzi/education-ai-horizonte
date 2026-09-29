@@ -1,8 +1,11 @@
+import { CostPanel } from './CostPanel';
+import './costs.css';
+
 const capabilities = [
   {
     number: '01',
     title: 'Agentes especialistas',
-    text: 'Skills de educação para apoiar planejamento, análise e preparação. O professor conversa e revisa o trabalho no Copilot nativo.',
+    text: 'No Cowork, o professor solicita um relatório, acompanha o trabalho e revisa as evidências na experiência nativa do Copilot.',
     detail: 'Contexto compartilhado. Especialidades distintas.',
   },
   {
@@ -14,12 +17,16 @@ const capabilities = [
   {
     number: '03',
     title: 'Ontologia e evidências',
-    text: 'Conceitos, relações e proveniência dão contexto às ferramentas. O backend usa uma ontologia customizada — não o Fabric nativo.',
+    text: 'O fluxo principal usa Fabric IQ nativo para contextualizar o relatório. A ontologia customizada via MCP é uma variante de integração.',
     detail: 'Relações explícitas. Evidências rastreáveis.',
   },
 ];
 
 export function App() {
+  if (window.location.pathname === '/costs' || window.location.pathname === '/costs/') {
+    return <CostPanel />;
+  }
+
   return (
     <>
       <a className="skip-link" href="#main">Ir para o conteúdo</a>
@@ -28,14 +35,17 @@ export function App() {
           <span className="brand-name">Horizonte<span className="brand-dot">.</span></span>
           <span className="brand-description">Education Skills for Copilot</span>
         </a>
-        <a className="header-link" href="#installation">Instalação técnica <span aria-hidden="true">↗</span></a>
+        <nav className="cost-header-nav" aria-label="Navegação principal">
+          <a className="header-link" href="/costs">Custo por pergunta</a>
+          <a className="header-link" href="#installation">Instalação técnica <span aria-hidden="true">↗</span></a>
+        </nav>
       </header>
 
       <main id="main" className="container">
         <section className="hero" aria-labelledby="hero-title">
           <div className="eyebrow"><span className="status-dot" aria-hidden="true" /> COPILOT NATIVO · INFRAESTRUTURA EDUCACIONAL</div>
           <h1 id="hero-title">O professor trabalha no Copilot.<br /><span>Os sistemas trabalham juntos.</span></h1>
-          <p className="hero-description">Horizonte conecta skills, sistemas escolares e evidências ao Copilot.
+          <p className="hero-description">No fluxo principal, Cowork + Fabric IQ nativo produzem um relatório com evidências para revisão do professor.
             Esta página é um ponto de instalação e diagnóstico técnico — não um aplicativo docente substituto.</p>
           <div className="hero-actions">
             <a className="button primary" href="https://copilot.cloud.microsoft/" target="_blank" rel="noopener noreferrer">
@@ -63,11 +73,12 @@ export function App() {
             <h2 id="architecture-title">Nativo na experiência.<br />Aberto na integração.</h2>
           </div>
           <div className="architecture-content">
-            <p className="flow" aria-label="Copilot nativo, via MCP, para ontologia, para agentes AI e legacy sintéticos">
-              <span>nativeCopilot</span><b aria-hidden="true">→</b><span>MCP</span><b aria-hidden="true">→</b>
-              <span>Ontologia</span><b aria-hidden="true">→</b><span>agentes AI + legacy <small>synthetic</small></span>
+            <p className="flow" aria-label="Cowork, Fabric IQ nativo, relatório com evidências, revisão docente">
+              <span>Cowork</span><b aria-hidden="true">→</b><span>Fabric IQ nativo</span><b aria-hidden="true">→</b>
+              <span>Relatório com evidências</span><b aria-hidden="true">→</b><span>Revisão docente <small>dados sintéticos</small></span>
             </p>
-            <p>A experiência docente é exclusivamente a do Copilot nativo. Cowork, Code e Autopilot não são
+            <p>A experiência principal acontece no Cowork com Fabric IQ nativo. O backend de ontologia customizada
+              via MCP é uma variante, não uma implementação do Fabric. Cowork, Code e Autopilot não são
               reproduzidos aqui: o Code nativo cria artefatos e ferramentas na própria superfície;
               o Autopilot nativo gerencia os agendamentos, não um job Azure desta web.</p>
             <aside className="product-note">
@@ -87,7 +98,7 @@ export function App() {
           <div>
             <ol className="install-steps">
               <li><strong>Validar o ambiente</strong><p>Confira a saúde do serviço e a configuração de acesso com o responsável pelo backend. Todos os dados desta demonstração são sintéticos.</p></li>
-              <li><strong>Instalar o pacote plugin no Copilot</strong><p>O administrador deve instalar o pacote e configurar a conexão MCP protegida pelos mecanismos aprovados do tenant.</p></li>
+              <li><strong>Configurar a integração escolhida</strong><p>No fluxo principal, valide o acesso ao Fabric IQ nativo. Na variante MCP, instale o pacote plugin e configure a conexão protegida pelos mecanismos aprovados do tenant.</p></li>
               <li><strong>Confirmar na superfície nativa</strong><p>Verifique autenticação, catálogo de ferramentas e leitura de evidências no Copilot antes de considerar a integração instalada.</p></li>
             </ol>
             <div className="security-notice">

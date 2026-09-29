@@ -103,3 +103,17 @@ não representam licença concedida, certificação ou termos jurídicos novos.
 Validação de schema e testes locais não comprovam instalação, roteamento,
 permissões ou resposta real do Fabric IQ: esses passos exigem verificação
 no host com o relatório disponível.
+
+Consumo e custo
+---------------
+
+A skill acrescenta **Consumo desta pergunta**: distingue Azure próprio não
+acionado nesta rota, CU(s) Fabric ainda não informadas e créditos aproximados
+da tarefa quando disponíveis. ``/cost`` não é uma API de fatura por pergunta;
+se o host mostrar apenas total mensal, não atribuir esse saldo à pergunta.
+Uma tarefa nova por pergunta facilita a comparação.
+
+O painel técnico ``/costs`` permite calcular/exportar um comprovante com as
+métricas e tarifas disponíveis, preservando parcelas desconhecidas. Veja
+`Consumo e custo por pergunta <cost-per-question.rst>`_ para as fórmulas,
+fontes, drivers de créditos e captura automática no backend instrumentado.

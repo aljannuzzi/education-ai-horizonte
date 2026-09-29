@@ -1,6 +1,6 @@
 ---
 name: horizonte-professor
-description: Use esta skill sempre que o pedido docente mencionar Escola Horizonte, professora Marina ou prof. Marina, preparar aula, plano de aula, diário/diario, turma 7A/7B, laboratório/laboratorio, espaço indisponível, material ou recomposição no contexto Horizonte, mesmo sem citar o nome da skill. Consulte o relatório Horizonte Professor pela capacidade Fabric IQ existente para fundamentar planos, plano B, atividades sobre água ou frações e apoio ao diário; o Cowork organiza a resposta e o professor revisa. Não exige selecionar @agent, anexar arquivos nem configurar novo OAuth.
+description: Use esta skill sempre que o pedido docente mencionar Escola Horizonte, professora Marina ou prof. Marina, preparar aula, plano de aula, plano B, diário/diario, turma 7A/7B, laboratório/laboratorio, espaço indisponível, material ou recomposição no contexto Horizonte, mesmo sem citar a skill. Também use para custo por pergunta, consumo, créditos Cowork e custo Azure desta demo. Consulte o relatório Horizonte Professor pelo Fabric IQ existente; o Cowork organiza a resposta e o professor revisa. Separe custos observados, estimados, rateados e indisponíveis. Não exige @agent, anexos nem novo OAuth.
 ---
 
 # Horizonte Professor
@@ -101,6 +101,34 @@ Use sempre estas seções:
 Arquivos não são obrigatórios. Artefatos via capacidade nativa Code são opcionais,
 somente se ela estiver habilitada e a política da fonte permitir o conteúdo.
 Não simule Autopilot com job Azure, agendamentos ou execução autônoma.
+
+## Consumo e custo por pergunta
+
+Finalize cada resposta de negócio com um quadro curto "Consumo desta pergunta".
+Registre apenas chamadas realmente observadas e sua fonte; números ausentes
+são "não disponível", nunca zero. Não armazene a pergunta ou dados de alunos.
+- **Caminho**: Cowork -> Fabric IQ nativo -> relatório/modelo semântico.
+- **Azure da demo**: Azure OpenAI e Container Apps próprios não são acionados
+  por esse caminho. Marque "não aplicável nesta rota", não "demo gratuita".
+- **Fabric**: quantidade de consultas, se observável; CU(s) e custo precisam de
+  Capacity Metrics/eventos autorizados. Duração da resposta não é CU consumida.
+- **Cowork**: créditos aproximados da tarefa quando fornecidos pelo host.
+  Nunca estime créditos pelo tamanho do texto ou invente preço por chamada.
+Explique que o usuário pode digitar `/cost`; o comando nativo não cobra créditos,
+mas informa um acumulado aproximado da tarefa, não custo exato de cada ação.
+Não finja executar `/cost` como ferramenta ou gerar sua resposta. Se o host
+mostrar somente uso mensal ou não fornecer total da tarefa, marque indisponível.
+Uma tarefa nova por pergunta facilita comparação; em tarefa com vários turnos,
+a diferença antes/depois só é indicativa se a atividade for isolada e sem
+execuções concorrentes. Atrasos podem alterar a atribuição.
+Modelo, contexto, esforço de raciocínio, ferramentas, iterações e novas execuções
+de automações influenciam créditos. Tokens do Copilot não são tokens do Azure
+OpenAI da demo. Não some novamente créditos já presentes na fatura Azure.
+Taxas contratadas, moeda, data e fonte são necessárias para converter em dinheiro.
+CU(s) x preço-hora / (3600 x CUs da capacidade) é rateio, não tarifa por query.
+Sem todas as parcelas, apresente "subtotal conhecido; total incompleto".
+O painel técnico do repositório em `/costs` calcula e exporta recibos a partir
+de métricas informadas ou capturadas pelo backend; não intercepta este Cowork.
 
 ## Segurança e falhas
 

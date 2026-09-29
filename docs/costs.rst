@@ -1,6 +1,11 @@
 Custos: pequeno não significa gratuito
 ======================================
 
+Para medição e estimativa por operação, veja
+`Consumo e custo por pergunta <cost-per-question.rst>`_ e o painel técnico
+``/costs``. O caminho nativo Cowork/Power BI e o backend MCP são medidos
+separadamente; não atribuir ao backend consultas que não passaram por ele.
+
 Não há estimativa monetária fechada neste guia. Preços variam por região,
 moeda, contrato, data, franquias compartilhadas e consumo. Consulte os
 preços oficiais no momento da decisão e acompanhe a assinatura.
