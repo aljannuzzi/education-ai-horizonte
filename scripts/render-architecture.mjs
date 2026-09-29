@@ -7,6 +7,10 @@ import assert from 'node:assert/strict';
 
 // Both formats share geometry and text. No network, fonts, or packages are downloaded.
 const out = fileURLToPath(new URL('../docs/images/', import.meta.url));
+const selected = process.argv.find(arg => arg.startsWith('--only='))?.slice('--only='.length);
+if (selected && !['horizonte-pattern', 'horizonte-azure', 'horizonte-cowork-fabric-iq'].includes(selected)) {
+  throw new Error('Unknown architecture diagram.');
+}
 const palette = {
   blue: ['#246095', '#E6F1FB'],
   purple: ['#725294', '#F0E8F7'],
@@ -95,6 +99,7 @@ class Diagram {
     this.text(40, 120, 1680, subtitle, 24);
   }
   save() {
+    if (selected && selected !== this.name) return;
     for (const label of this.labels) label();
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" role="img" aria-labelledby="title desc" lang="pt-BR">
 <title id="title">${escape(this.title)} — Arquitetura de referência</title>
@@ -143,7 +148,7 @@ ${this.parts.join('\n')}
         '--hide-scrollbars', '--force-device-scale-factor=1',
         `--user-data-dir=${profile}`, `--window-size=${this.width},${this.height}`,
         `--screenshot=${target}`, pathToFileURL(path.join(out, `${this.name}.svg`)).href,
-      ], { timeout: 45000, windowsHide: true, encoding: 'utf8' });
+      ], { timeout: 120000, windowsHide: true, encoding: 'utf8' });
       assert.ok(!result.error && result.status === 0, result.error?.message || result.stderr);
       const png = readFileSync(target);
       assert.equal(png.subarray(1, 4).toString(), 'PNG');
@@ -156,7 +161,35 @@ ${this.parts.join('\n')}
   }
 }
 
-const pattern = new Diagram('horizonte-pattern', 1536, 'O pattern completo',
+const nativeIq = new Diagram('horizonte-cowork-fabric-iq', 1168, 'Cowork + Fabric IQ nativo',
+  'Caminho de relatório, distinto de consulta à ontologia. O professor conversa no aplicativo Microsoft 365 Copilot, dentro do Cowork. A skill Horizonte Professor orienta o procedimento e a descoberta do relatório. O plugin Fabric IQ já autorizado consulta o relatório Horizonte Professor e seu modelo semântico Power BI, ligado aos dados educacionais no Lakehouse. Cowork raciocina sobre as respostas e prepara alternativas e artefatos para revisão docente. Não há novo conector OAuth próprio, endpoint anônimo ou chamada à ontologia/Data Agent nesse caminho. A identidade e as permissões Microsoft 365 e Fabric são preservadas.');
+nativeIq.heading('HORIZONTE  /  EXPERIÊNCIA DOCENTE  /  RELATÓRIO SEMÂNTICO', 'O Cowork conduz o raciocínio. O plugin nativo consulta os dados com sua identidade.');
+nativeIq.boundary(40, 176, 1080, 600, 'Microsoft 365 Copilot · aplicativo nativo', 'blue');
+nativeIq.boundary(1160, 176, 560, 840, 'Microsoft Fabric · dados governados', 'green');
+nativeIq.box(72, 264, 280, 144, 'Professor', 'Objetivo em\nlinguagem natural', 'blue');
+nativeIq.box(424, 240, 340, 192, 'Cowork', 'Interpreta a intenção\nConsulta e raciocina\nPrepara entregáveis', 'blue');
+nativeIq.box(832, 240, 256, 192, 'Fabric IQ', 'Plugin nativo\nJá autorizado\nSomente leitura', 'green', 22);
+nativeIq.box(1216, 240, 448, 176, 'Horizonte Professor', 'Relatório Power BI\nContexto para descoberta', 'green');
+nativeIq.box(424, 536, 664, 160, 'Skill educacional', 'Descrição orienta ativação por intenção.\nProcedimento: consultar → explicar → propor.\nNão contém dados, credenciais ou respostas prontas.', 'purple', 23);
+nativeIq.box(1216, 536, 448, 144, 'Modelo semântico', 'Entidades e medidas\nSignificado no Power BI', 'green');
+nativeIq.box(1216, 816, 448, 136, 'OneLake / Lakehouse', 'Tabelas educacionais\nDados sintéticos', 'green');
+nativeIq.box(72, 840, 1016, 176, 'Retorno no Cowork · decisão do professor', 'Fatos do relatório + proposta pedagógica + incertezas\nPlano de aula, alternativa offline e rascunhos revisáveis\nSem notas, frequência ou comunicação automáticas', 'amber', 25);
+nativeIq.arrow([[352, 320], [424, 320]]);
+nativeIq.arrow([[764, 320], [832, 320]], { both: true });
+nativeIq.arrow([[1088, 320], [1216, 320]], { both: true });
+nativeIq.arrow([[592, 536], [592, 432]]);
+nativeIq.text(616, 464, 448, 'Orienta; não substitui o plugin.', 22);
+nativeIq.arrow([[1440, 416], [1440, 536]], { both: true });
+nativeIq.text(1240, 464, 432, 'Pergunta e resposta fundamentada', 22);
+nativeIq.arrow([[1440, 680], [1440, 816]], { both: true });
+nativeIq.text(1224, 728, 424, 'Dados pela conexão do modelo', 22);
+nativeIq.arrow([[424, 384], [384, 384], [384, 808], [592, 808], [592, 840]]);
+nativeIq.text(72, 712, 1016, 'Permissões do usuário + rótulos do conteúdo + revisão humana', 24);
+nativeIq.text(40, 1064, 1680, 'Este caminho consulta relatório/modelo semântico. Não invoca a ontologia ou o Data Agent diretamente.', 24, true);
+nativeIq.text(40, 1112, 1680, 'Sem novo aplicativo OAuth próprio. Nenhum acesso anônimo ao Fabric. Consulta respeita as permissões existentes.', 22);
+nativeIq.save();
+
+const pattern = new Diagram('horizonte-pattern', 1536, 'Pattern ampliado: ontologia e agentes',
   'Arquitetura de referência, não comprovação de provisionamento. O professor usa o Copilot nativo, com Skills e contexto autorizado do Work IQ. O MCP Horizonte valida argumentos e escopo, consulta o Fabric Data Agent e, separadamente, aciona especialistas de IA. O Fabric IQ fornece ontologia nativa vinculada ao lakehouse no OneLake. Fontes educacionais sintéticas alimentam o lakehouse de baixo para cima; consultas seguem para baixo. Evidências, origem e sugestões voltam pelo MCP ao Copilot. O professor revisa os resultados antes de qualquer alteração ou comunicação; não há notas automáticas.');
 pattern.heading('HORIZONTE  /  01  /  ARQUITETURA DE REFERÊNCIA', 'Copilot nativo para o professor • semântica governada no Fabric • IA especializada sob escopo');
 pattern.boundary(40, 176, 496, 880, 'Microsoft 365 · SaaS', 'blue');

@@ -5,9 +5,15 @@ Horizonte | AI para quem ensina
 Decisões pedagógicas continuam humanas.**
 
 Horizonte demonstra como o **Copilot nativo** pode conectar dados, materiais e
-agentes educacionais para preparar aulas, resolver dúvidas de suporte e criar
-ferramentas úteis ao professor. A base é uma **ontologia nativa no Fabric IQ**,
-consultada por um **Fabric Data Agent** e integrada por **skills e MCP no Azure**.
+capacidades educacionais para preparar aulas, investigar pendências e criar
+ferramentas úteis ao professor. A experiência **Cowork + Fabric IQ nativo**
+usa o relatório **Horizonte Professor** e seu modelo semântico Power BI,
+consultados com a identidade do usuário, sem um novo aplicativo OAuth próprio.
+
+O repositório também descreve uma variante com **ontologia nativa Fabric IQ,
+Fabric Data Agent e integrações MCP no Azure**. São caminhos distintos:
+o plugin Fabric IQ do Cowork consulta relatórios/modelos semânticos;
+isso não equivale a chamar diretamente a ontologia ou o Data Agent.
 
 Este documento explica a arquitetura final de referência, suas responsabilidades
 e seus contratos. O desenho não é um inventário de recursos provisionados.
@@ -48,8 +54,45 @@ essa fragmentação com segurança.
 texto.** Redução de tempo, qualidade e adoção devem ser medidas em um piloto;
 não são resultados presumidos pela existência da arquitetura.
 
-O pattern completo
-------------------
+O caminho nativo no Cowork
+---------------------------
+
+.. image:: docs/images/horizonte-cowork-fabric-iq.png
+   :alt: Professor no Cowork, skill Horizonte Professor, plugin Fabric IQ nativo, relatório Power BI, modelo semântico e dados sintéticos no Lakehouse; sem OAuth próprio e sem consulta direta à ontologia.
+   :width: 100%
+   :target: docs/images/horizonte-cowork-fabric-iq.svg
+
+`Abrir imagem vetorial <docs/images/horizonte-cowork-fabric-iq.svg>`_ |
+`Editar diagrama <docs/images/horizonte-cowork-fabric-iq.excalidraw>`_
+
+1. O professor descreve seu objetivo no **Cowork do aplicativo Copilot**,
+   sem entrar em outro agente ou selecionar uma interface da demonstração.
+2. A descrição da skill **Horizonte Professor** orienta quando ativar o
+   procedimento educacional e qual relatório consultar.
+3. A capacidade **Fabric IQ**, fornecida pela Microsoft, descobre o relatório
+   pelo nome ou link e consulta seu modelo semântico com a identidade do usuário.
+4. Cowork usa os resultados para explicar os fatos, raciocinar sobre opções
+   e preparar um plano ou artefato revisável.
+
+**O que esse caminho evita:** registro de um aplicativo OAuth da demo,
+credenciais em prompts e um servidor MCP anônimo. As permissões e políticas
+do conector nativo continuam valendo; a skill não cria nem amplia acesso.
+
+**O que ele não faz:** invocar a ontologia/Data Agent ou os especialistas
+Azure por simplesmente estarem no mesmo workspace. Essas integrações são
+contratos próprios da variante ampliada. Relatório e modelo semântico devem
+ser chamados pelo nome correto; não inventar dados quando a descoberta falha.
+
+O relatório serve como contexto governado para a conversa, não como um novo
+portal obrigatório para o professor. A referência de fonte deve ser conferida
+no relatório antes de compartilhar números; o plugin não garante citações
+automáticas completas em todas as respostas.
+
+Para configuração e uso, veja `Cowork com Fabric IQ nativo
+<docs/cowork-fabric-iq.rst>`_.
+
+Pattern ampliado: ontologia e agentes especializados
+-----------------------------------------------------
 
 .. image:: docs/images/horizonte-pattern.png
    :alt: Arquitetura de referência Horizonte: professor no Copilot nativo, skills e MCP no Azure, Fabric Data Agent e ontologia Fabric IQ sobre dados governados, agentes especialistas e revisão humana.
@@ -73,9 +116,10 @@ O pattern completo
 5. **A resposta volta ao professor.** Fatos, sugestões e artefatos são
    apresentados juntos, com revisão antes de qualquer efeito externo.
 
-A linha principal é **Copilot → skills/MCP → Fabric Data Agent → ontologia
-Fabric IQ → dados governados**. A consulta percorre esse caminho; a atualização
-dos dados percorre outro: **fontes → ingestão ou acesso federado → OneLake**.
+Na variante de ontologia, a linha principal é **Copilot → skills/MCP →
+Fabric Data Agent → ontologia Fabric IQ → dados governados**. A consulta
+percorre esse caminho; a atualização dos dados percorre outro:
+**fontes → ingestão ou acesso federado → OneLake**.
 
 Agentes especialistas formam uma ramificação coordenada pelas skills/MCP.
 O Data Agent não é um executor genérico de agentes externos. Work IQ adiciona
@@ -136,6 +180,10 @@ que um chamado foi aberto, uma mensagem enviada ou um diário atualizado.
 
 Como a arquitetura se distribui em Azure e Fabric
 -------------------------------------------------
+
+O mapa abaixo detalha a variante ampliada. A experiência de relatório
+**Cowork + Fabric IQ nativo não depende do servidor MCP Azure** para consultar
+Power BI; usa a conexão Microsoft já autorizada.
 
 .. image:: docs/images/horizonte-azure.png
    :alt: Visão de implantação: Microsoft 365 SaaS, backend e agentes no Azure Container Apps, Azure OpenAI, Blob, ACR e Log Analytics; workspace Fabric com Data Agent, ontologia e Lakehouse, sob identidades distintas.
@@ -446,6 +494,8 @@ nativa; a diferença é o contrato de integração, não uma nova interface.
 
    * - Quero entender…
      - Onde ler
+   * - Cowork direto com o plugin Fabric IQ nativo
+     - `Relatório e skill Horizonte Professor <docs/cowork-fabric-iq.rst>`_
    * - Instalação do plugin e consentimento
      - `Copilot nativo <docs/native-copilot.rst>`_
    * - Itens, bindings e consulta nativa

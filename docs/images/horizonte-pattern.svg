@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1536" viewBox="0 0 1760 1536" role="img" aria-labelledby="title desc" lang="pt-BR">
-<title id="title">O pattern completo — Arquitetura de referência</title>
+<title id="title">Pattern ampliado: ontologia e agentes — Arquitetura de referência</title>
 <desc id="desc">Arquitetura de referência, não comprovação de provisionamento. O professor usa o Copilot nativo, com Skills e contexto autorizado do Work IQ. O MCP Horizonte valida argumentos e escopo, consulta o Fabric Data Agent e, separadamente, aciona especialistas de IA. O Fabric IQ fornece ontologia nativa vinculada ao lakehouse no OneLake. Fontes educacionais sintéticas alimentam o lakehouse de baixo para cima; consultas seguem para baixo. Evidências, origem e sugestões voltam pelo MCP ao Copilot. O professor revisa os resultados antes de qualquer alteração ou comunicação; não há notas automáticas.</desc>
 <defs>
 <marker id="end" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M2 2 L10 6 L2 10" fill="none" stroke="#596571" stroke-width="1.6"/></marker>
@@ -7,7 +7,7 @@
 </defs>
 <rect width="1760" height="1536" fill="#FFFFFF"/>
 <text x="40" y="24" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600"><tspan x="40" y="46">HORIZONTE  /  01  /  ARQUITETURA DE REFERÊNCIA</tspan></text>
-<text x="40" y="64" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="600"><tspan x="40" y="102">O pattern completo</tspan></text>
+<text x="40" y="64" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="600"><tspan x="40" y="102">Pattern ampliado: ontologia e agentes</tspan></text>
 <text x="40" y="120" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="40" y="144">Copilot nativo para o professor • semântica governada no Fabric • IA especializada sob escopo</tspan></text>
 <rect x="40" y="176" width="496" height="880" rx="16" stroke="#246095" stroke-width="2" fill="none"/>
 <text x="64" y="192" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="64" y="218">Microsoft 365 · SaaS</tspan></text>

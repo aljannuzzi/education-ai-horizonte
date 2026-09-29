@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1168" viewBox="0 0 1760 1168" role="img" aria-labelledby="title desc" lang="pt-BR">
+<title id="title">Cowork + Fabric IQ nativo — Arquitetura de referência</title>
+<desc id="desc">Caminho de relatório, distinto de consulta à ontologia. O professor conversa no aplicativo Microsoft 365 Copilot, dentro do Cowork. A skill Horizonte Professor orienta o procedimento e a descoberta do relatório. O plugin Fabric IQ já autorizado consulta o relatório Horizonte Professor e seu modelo semântico Power BI, ligado aos dados educacionais no Lakehouse. Cowork raciocina sobre as respostas e prepara alternativas e artefatos para revisão docente. Não há novo conector OAuth próprio, endpoint anônimo ou chamada à ontologia/Data Agent nesse caminho. A identidade e as permissões Microsoft 365 e Fabric são preservadas.</desc>
+<defs>
+<marker id="end" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M2 2 L10 6 L2 10" fill="none" stroke="#596571" stroke-width="1.6"/></marker>
+<marker id="start" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="10" markerHeight="10" orient="auto"><path d="M10 2 L2 6 L10 10" fill="none" stroke="#596571" stroke-width="1.6"/></marker>
+</defs>
+<rect width="1760" height="1168" fill="#FFFFFF"/>
+<text x="40" y="24" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600"><tspan x="40" y="46">HORIZONTE  /  EXPERIÊNCIA DOCENTE  /  RELATÓRIO SEMÂNTICO</tspan></text>
+<text x="40" y="64" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="600"><tspan x="40" y="102">Cowork + Fabric IQ nativo</tspan></text>
+<text x="40" y="120" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="40" y="144">O Cowork conduz o raciocínio. O plugin nativo consulta os dados com sua identidade.</tspan></text>
+<rect x="40" y="176" width="1080" height="600" rx="16" stroke="#246095" stroke-width="2" fill="none"/>
+<text x="64" y="192" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="64" y="218">Microsoft 365 Copilot · aplicativo nativo</tspan></text>
+<rect x="1160" y="176" width="560" height="840" rx="16" stroke="#39774A" stroke-width="2" fill="none"/>
+<text x="1184" y="192" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600"><tspan x="1184" y="218">Microsoft Fabric · dados governados</tspan></text>
+<rect x="72" y="264" width="280" height="144" rx="16" stroke="#246095" stroke-width="2" fill="#E6F1FB"/>
+<text x="96" y="280" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="96" y="310">Professor</tspan></text>
+<text x="96" y="328" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="96" y="352">Objetivo em</tspan><tspan x="96" y="385.6">linguagem natural</tspan></text>
+<rect x="424" y="240" width="340" height="192" rx="16" stroke="#246095" stroke-width="2" fill="#E6F1FB"/>
+<text x="448" y="256" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="286">Cowork</tspan></text>
+<text x="448" y="304" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="448" y="328">Interpreta a intenção</tspan><tspan x="448" y="361.6">Consulta e raciocina</tspan><tspan x="448" y="395.2">Prepara entregáveis</tspan></text>
+<rect x="832" y="240" width="256" height="192" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="856" y="256" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="856" y="286">Fabric IQ</tspan></text>
+<text x="856" y="304" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="856" y="326">Plugin nativo</tspan><tspan x="856" y="356.8">Já autorizado</tspan><tspan x="856" y="387.6">Somente leitura</tspan></text>
+<rect x="1216" y="240" width="448" height="176" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="256" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="286">Horizonte Professor</tspan></text>
+<text x="1240" y="304" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="1240" y="328">Relatório Power BI</tspan><tspan x="1240" y="361.6">Contexto para descoberta</tspan></text>
+<rect x="424" y="536" width="664" height="160" rx="16" stroke="#725294" stroke-width="2" fill="#F0E8F7"/>
+<text x="448" y="552" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="448" y="582">Skill educacional</tspan></text>
+<text x="448" y="600" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="400"><tspan x="448" y="623">Descrição orienta ativação por intenção.</tspan><tspan x="448" y="655.2">Procedimento: consultar → explicar → propor.</tspan><tspan x="448" y="687.4">Não contém dados, credenciais ou respostas prontas.</tspan></text>
+<rect x="1216" y="536" width="448" height="144" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="552" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="582">Modelo semântico</tspan></text>
+<text x="1240" y="600" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="1240" y="624">Entidades e medidas</tspan><tspan x="1240" y="657.6">Significado no Power BI</tspan></text>
+<rect x="1216" y="816" width="448" height="136" rx="16" stroke="#39774A" stroke-width="2" fill="#E8F4E9"/>
+<text x="1240" y="832" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="1240" y="862">OneLake / Lakehouse</tspan></text>
+<text x="1240" y="880" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="1240" y="904">Tabelas educacionais</tspan><tspan x="1240" y="937.6">Dados sintéticos</tspan></text>
+<rect x="72" y="840" width="1016" height="176" rx="16" stroke="#946519" stroke-width="2" fill="#FFF3D8"/>
+<text x="96" y="856" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600"><tspan x="96" y="886">Retorno no Cowork · decisão do professor</tspan></text>
+<text x="96" y="904" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="400"><tspan x="96" y="929">Fatos do relatório + proposta pedagógica + incertezas</tspan><tspan x="96" y="964">Plano de aula, alternativa offline e rascunhos revisáveis</tspan><tspan x="96" y="999">Sem notas, frequência ou comunicação automáticas</tspan></text>
+<polyline points="352,320 424,320" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<polyline points="764,320 832,320" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<polyline points="1088,320 1216,320" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<polyline points="592,536 592,432" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<text x="616" y="464" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="616" y="486">Orienta; não substitui o plugin.</tspan></text>
+<polyline points="1440,416 1440,536" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<text x="1240" y="464" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1240" y="486">Pergunta e resposta fundamentada</tspan></text>
+<polyline points="1440,680 1440,816" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-start="url(#start)" marker-end="url(#end)"/>
+<text x="1224" y="728" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="1224" y="750">Dados pela conexão do modelo</tspan></text>
+<polyline points="424,384 384,384 384,808 592,808 592,840" fill="none" stroke="#596571" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#end)"/>
+<text x="72" y="712" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400"><tspan x="72" y="736">Permissões do usuário + rótulos do conteúdo + revisão humana</tspan></text>
+<text x="40" y="1064" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600"><tspan x="40" y="1088">Este caminho consulta relatório/modelo semântico. Não invoca a ontologia ou o Data Agent diretamente.</tspan></text>
+<text x="40" y="1112" fill="#000000" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="400"><tspan x="40" y="1134">Sem novo aplicativo OAuth próprio. Nenhum acesso anônimo ao Fabric. Consulta respeita as permissões existentes.</tspan></text>
+</svg>
